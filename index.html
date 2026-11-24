@@ -136,6 +136,7 @@ button:hover:not(:disabled){transform:translateY(-2px)}button:active:not(:disabl
 #kenoGame.draw-mode #stakeCard>:not(#entriesList){display:none}
 #kenoGame.draw-mode #stakeCard #entriesList{margin-top:0;max-height:none}
 
+.balance-amount small{margin-left:6px}.balance-games{margin:2px 0 12px;font-size:13px;color:#9aaba5}.balance-games b{color:#83f3ff;font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
@@ -149,6 +150,7 @@ button:hover:not(:disabled){transform:translateY(-2px)}button:active:not(:disabl
     <div class="home-balance card">
       <div class="balance-top"><span class="eyebrow">YOUR AVAILABLE BALANCE</span><span class="demo-tag" id="modeBadge">REAL MODE</span></div>
       <div class="balance-amount"><span id="homeBalance"></span><small>practice points</small></div>
+      <div class="balance-games">🎮 Games played: <b id="homeGames">—</b></div>
       <div class="balance-foot"><span>🔒 Secure wallet</span><button class="refresh-btn" id="refreshBalance" type="button">↻ Refresh</button></div>
     </div>
     <section class="card how-to-card">
@@ -165,27 +167,61 @@ button:hover:not(:disabled){transform:translateY(-2px)}button:active:not(:disabl
   </section>
   <section id="walletPanel">
     <div class="stack">
-      <section class="card" id="walletStatsCard">
-        <h3>💰 My practice points</h3>
-        <div class="stat-grid">
-          <div class="stat-box"><span class="eyebrow">BALANCE</span><div class="stat-big" id="walletBalanceBig">—</div><small>practice points</small></div>
-          <div class="stat-box"><span class="eyebrow">GAMES PLAYED</span><div class="stat-big" id="walletGamesBig">—</div><small>rounds joined</small></div>
-        </div>
-        <div class="stake-note" id="walletSyncNote"></div>
-        <button class="refresh-btn" id="refreshWalletBtn" type="button" style="margin-top:10px">↻ Refresh balance</button>
+      <div id="walletBalanceSlot" hidden></div>
+      <section id="walletAccountSlot">
+  <section class="card account-card" id="accountCard" style="margin-top:14px">
+    <div class="account-head"><div><h3>👤 Player account</h3><p class="sub" style="margin:0">Sign in or create your Keno X account.</p></div><span class="soon-tag">ACCOUNT</span></div>
+    <div id="accountSignedOut">
+      <div class="account-tabs" role="tablist" aria-label="Account options">
+        <button type="button" class="account-tab active" id="loginTabBtn" role="tab" aria-selected="true" aria-controls="loginPanel">Login</button>
+        <button type="button" class="account-tab" id="registerTabBtn" role="tab" aria-selected="false" aria-controls="registerPanel">Registration</button>
+      </div>
+      <div id="loginPanel" role="tabpanel" aria-labelledby="loginTabBtn">
+        <form id="loginForm" class="account-form">
+          <label>Email address<input id="loginEmail" name="email" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com" required></label>
+          <label>Password<input id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="Your password" required></label>
+          <button class="goldbtn" type="submit" id="loginBtn">Login</button>
+          <button class="pill" type="button" id="resendBtn" hidden>Resend verification email</button>
+        </form>
+      </div>
+      <div id="registerPanel" role="tabpanel" aria-labelledby="registerTabBtn" hidden>
+        <form id="registerForm" class="account-form">
+          <label>Email address<input id="regEmail" name="email" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com" required></label>
+          <label>Display name <span style="font-weight:400;opacity:.7">(optional, shown on the leaderboard)</span><input id="regUsername" name="username" maxlength="20" pattern="[A-Za-z0-9_]{3,20}" autocomplete="nickname" placeholder="e.g. Abebe_12 — leave blank for a private name"></label>
+          <label>Password<input id="regPassword" name="password" type="password" minlength="8" autocomplete="new-password" placeholder="At least 8 characters" required></label>
+          <label>Confirm password<input id="regConfirm" name="confirm" type="password" minlength="8" autocomplete="new-password" placeholder="Enter password again" required></label>
+          <button class="goldbtn" type="submit" id="registerBtn">Create account</button>
+        </form>
+        <p class="account-help">You will log in with your email and password. We send a verification link to your email — open it, then come back and log in. Your email is never shown to other players. Never reuse an important password.</p>
+      </div>
+    </div>
+    <div id="accountSignedIn" hidden>
+      <p class="account-status" id="accountStatus" aria-live="polite"></p>
+      <button class="pill" type="button" id="signOutBtn">Sign out</button>
+    </div>
+    <p class="account-feedback" id="accountFeedback" role="status" aria-live="polite"></p>
+  </section>
       </section>
-      <section class="card" id="telegramRegistrationCard">
-        <h3>👤 Telegram account</h3>
-        <p id="telegramRegistrationStatus" class="account-status" role="status" aria-live="polite">Checking your Telegram contact registration…</p>
-        <p class="payment-note">Register in the Keno X Telegram bot by sharing your own contact. Your registration is saved by the bot in Supabase and checked whenever you reopen this game. Keno X is a free practice game; points are virtual and have no cash value.</p>
-        <button class="refresh-btn" id="refreshTelegramRegistration" type="button">↻ Check registration again</button>
+      <section class="card payment-card" id="walletPaymentCard">
+        <div class="payment-heading"><div><h3>Payment methods</h3><p class="sub">Choose a method to deposit or request a withdrawal.</p></div><span class="soon-tag">WALLET</span></div>
+        <div class="payment-methods"><div class="method" id="walletTelebirrDisplay" role="note" aria-label="Telebirr payment method"><span class="method-mark telebirr">T</span><span><strong>Telebirr</strong><small>0911390259</small></span></div></div>
+        <div class="payment-actions">
+          <button class="action-card deposit-action" id="walletDepositBtn" type="button"><span class="action-icon">＋</span><span><strong>Deposit</strong><small>Request a Deposit</small></span><span class="action-arrow">›</span></button>
+          <button class="action-card withdraw-action" id="walletWithdrawBtn" type="button"><span class="action-icon">↗</span><span><strong>Withdraw</strong><small>Request a Withdrawal</small></span><span class="action-arrow">›</span></button>
+        </div>
+      </section>
+      <section class="card" id="walletHistoryCard" hidden>
+        <div class="payment-heading"><div><h3>Wallet activity</h3><p class="sub">Recent changes and requests.</p></div><button class="refresh-btn" id="clearWalletHistory" type="button">Clear history</button></div>
+        <div id="walletHistoryList" aria-live="polite"><p class="payment-note">No wallet activity yet.</p></div>
+        <p class="payment-note">History is saved in this browser only for now. It is not yet synced to your Supabase account.</p>
       </section>
     </div>
   </section>
   <section id="kenoPanel" hidden>
   <section class="card" id="registrationGate" style="margin-bottom:14px">
-    <h3>🔒 Telegram registration required</h3>
-    <p class="sub" style="line-height:1.6;margin:0">Open the Keno X Telegram bot, send <b>/start</b>, and share your own contact. Then open the game using the Play button sent by the bot.</p>
+    <h3>🔒 Log in to play</h3>
+    <p class="sub" style="line-height:1.6;margin:0">Create an account or log in with your email in the <b>Wallet</b> tab, then come back here to play.</p>
+    <button class="pill" type="button" id="gateWalletBtn" style="margin-top:10px">Go to Wallet →</button>
   </section>
   <section class="countdown-card" id="countdownCard" aria-live="polite">
     <div><div class="countdown-label">⏱ NEXT DRAW STARTS IN</div><div class="countdown-note" id="timerNote">Choose numbers and join during the countdown</div></div>
@@ -245,6 +281,20 @@ button:hover:not(:disabled){transform:translateY(-2px)}button:active:not(:disabl
   </section>
 
 
+  <div class="payment-modal-backdrop" id="paymentModalBackdrop" role="dialog" aria-modal="true" aria-labelledby="paymentModalTitle" aria-hidden="true">
+    <section class="payment-modal">
+      <div class="payment-modal-head"><h3 id="paymentModalTitle">Telebirr payment</h3><button type="button" class="modal-close" id="closePaymentModal" aria-label="Close payment screen">×</button></div>
+      <p class="sub" id="paymentModalSubtitle">Start a secure Telebirr payment through the payment provider.</p>
+      <div class="payment-method-choice"><span class="method-mark">T</span><span><strong>Telebirr</strong><small>Secure checkout • Server connection required</small></span></div>
+      <label for="paymentAmount" id="paymentAmountLabel">Amount (ETB)</label>
+      <input id="paymentAmount" type="number" min="10" max="10000" step="1" value="100" inputmode="decimal">
+      <div class="amount-shortcuts"><button type="button" data-demo-amount="100">100 ETB</button><button type="button" data-demo-amount="500">500 ETB</button><button type="button" data-demo-amount="1000">1,000 ETB</button></div>
+      <div class="payment-demo-warning">SECURE PAYMENT NOTICE: payment details must be entered only on the official hosted Telebirr checkout. This page never collects your Telebirr PIN or password. The payment is not complete until the server verifies the provider callback.</div>
+      <button type="button" class="greenbtn" id="confirmDemoPayment">Continue to Telebirr</button>
+      <div class="payment-feedback" id="paymentFeedback" aria-live="polite"></div>
+    </section>
+  </div>
+
   <nav class="nav"><button id="homeNav">⌂ Home</button><button id="kenoNav">▦ Keno</button><button id="walletNav" class="active">▣ Wallet</button><button id="leaderNav">♜ Leaderboard</button><button id="adminNav" type="button" hidden>⚙ Admin</button></nav>
   <div class="foot">Keno X • Free practice game • Points have no cash value</div>
 </div>
@@ -272,7 +322,6 @@ const selected=new Set();
 const WALLET_BALANCE_KEY='habesha_keno_virtual_wallet_balance_v1';
 let balance=100, gamesPlayed=0;
 let holdUntil=0, ballsClearPending=false; // keeps the draw result on screen for a few seconds after a round ends
-const START_BALANCE=100;
 let rounds=0, wagered=0, totalMatches=0;
 let timerRemaining=60, timerInterval=null, revealInterval=null, lastDraw=new Set(), lastHits=new Set();
 let scheduledDrawNumbers=[], phase='syncing', revealCount=0, queuedEntries=[], entrySeq=0, roundSequence=0;
@@ -360,16 +409,16 @@ function setGameMode(mode) {
 
   renderModeBalance();
 }
-let isTelegramRegistered = false;
-let telegramPlayer = null;
 const fmt=n=>Number(n).toLocaleString('en-US');
-function saveVirtualBalance(){try{const id=telegramPlayer?.telegram_id||tg?.initDataUnsafe?.user?.id;if(id){localStorage.setItem('keno_x_telegram_points_'+String(id),String(balance));localStorage.setItem('keno_x_telegram_games_'+String(id),String(gamesPlayed));}}catch(_){}}
-function syncHomeBalance(){saveVirtualBalance();const el=document.getElementById('homeBalance');if(el)el.textContent=isTelegramRegistered?fmt(balance):''}
+const GAMES_KEY_PREFIX='keno_x_games_v1_';
+function saveVirtualBalance(){try{localStorage.setItem(WALLET_BALANCE_KEY,String(balance));if(walletUserId)localStorage.setItem(GAMES_KEY_PREFIX+walletUserId,String(gamesPlayed));}catch(_){}}
+function syncHomeBalance(){saveVirtualBalance();const el=document.getElementById('homeBalance');if(el)el.textContent=walletUserId?fmt(balance):''}
 let adminPointsBalance=0, currentUsername='';
 async function loadPlayerWallet(session,skipFlush){
   if(!supabaseClient || !session?.user?.id) return;
   walletUserId=session.user.id;
   currentUsername=session.user.user_metadata?.username||'';
+  try{const g=Number(localStorage.getItem(GAMES_KEY_PREFIX+session.user.id));gamesPlayed=Number.isFinite(g)&&g>0?g:0;}catch(_){gamesPlayed=0;}
   if(!skipFlush)await flushSettlements();
   const {data,error}=await supabaseClient.from('practice_wallets')
     .select('balance,admin_points')
@@ -391,10 +440,10 @@ function renderModeBalance() {
   // Both the Wallet card and the Keno stake display read from this one balance value.
   const amount = document.getElementById('homeBalance');
   const caption = document.querySelector('.balance-amount small');
-  if (amount) amount.textContent = isTelegramRegistered ? fmt(balance) : '';
+  if (amount) amount.textContent = walletUserId ? fmt(balance) : '';
   if (caption) caption.textContent = 'balance';
   const stakeBalance = document.getElementById('stakeBalance');
-  if (stakeBalance) { stakeBalance.hidden = !isTelegramRegistered; stakeBalance.textContent = isTelegramRegistered ? 'Practice points: ' + fmt(balance) : ''; }
+  if (stakeBalance) { stakeBalance.hidden = !walletUserId; stakeBalance.textContent = walletUserId ? 'Practice points: ' + fmt(balance) : ''; }
   if (typeof updateStakeUI === 'function') updateStakeUI();
 }
 
@@ -557,8 +606,8 @@ function updateStakeUI(){
   const set=(id,t)=>{const el=document.getElementById(id);if(el)el.textContent=t};
   if(typeof renderWalletStats==='function')renderWalletStats();
   if(typeof updateRoundView==='function')updateRoundView();
-  set('stakeBalance',isTelegramRegistered?'Practice points: '+fmt(balance):'');
-  const sbEl=document.getElementById('stakeBalance');if(sbEl)sbEl.hidden=!isTelegramRegistered;
+  set('stakeBalance',walletUserId?'Practice points: '+fmt(balance):'');
+  const sbEl=document.getElementById('stakeBalance');if(sbEl)sbEl.hidden=!walletUserId;
   renderEntries();
   set('stakeShown',valid?fmt(stake):'—');
   const row=PAYTABLE[picks];
@@ -581,7 +630,7 @@ function updateStakeUI(){
     if(!walletUserId){
       if(valid&&stake>availableBalance())note.textContent='Stake is higher than your available points.';
       else if(valid&&(stake<MIN_STAKE||stake>MAX_STAKE))note.textContent=`Stake must be between ${MIN_STAKE} and ${MAX_STAKE} credits.`;
-      else note.textContent=`Min ${MIN_STAKE} • Max ${MAX_STAKE} stake per entry. Register through the Telegram bot to use practice points. Your balance changes after the draw.`;
+      else note.textContent=`Min ${MIN_STAKE} • Max ${MAX_STAKE} stake per entry. Log in with your email to use your balance. Your balance changes after the draw.`;
     }
     else if(valid&&stake>availableBalance())note.textContent=queuedEntries.length?`Not enough available points (${fmt(pendingStake())} already staked on ${queuedEntries.length} entr${queuedEntries.length===1?'y':'ies'}).`:(balance<MIN_STAKE?'You do not have enough balance to stake.':'Stake is higher than your balance.');
     else if(valid&&(stake<MIN_STAKE||stake>MAX_STAKE))note.textContent=`Stake must be between ${MIN_STAKE} and ${MAX_STAKE} credits.`;
@@ -731,9 +780,13 @@ function finishDraw(){
     });
     const net=totalPayout-totalStake;
     // Balance changes only now, once for the whole draw: profit is added and lost stakes are removed.
-    // Telegram player: update locally now, then save the round on the server (retried if offline).
-    balance=Math.max(0,balance+(totalPayout-totalStake));gamesPlayed+=1;saveVirtualBalance();renderModeBalance();
-    queueTgSettlement(roundSequence,entries,totalStake,totalPayout);
+    if(walletUserId){
+      // Signed-in player: update the balance now and save the round on the server (retried if offline).
+      balance=Math.max(0,balance+(totalPayout-totalStake));gamesPlayed+=1;saveVirtualBalance();renderModeBalance();
+      queueSettlement(roundSequence,entries.length,totalStake,totalPayout);
+    }else{
+      addToBalance('demo',totalPayout-totalStake);
+    }
     addWalletActivity(net>0?'Keno win':net<0?'Keno loss':'Keno draw result',net,`${entries.length} entr${entries.length===1?'y':'ies'} • staked ${fmt(totalStake)} • returned ${fmt(totalPayout)}`);
     lastDraw=new Set(drawNumbers);lastHits=new Set();
     status(`Round complete. ${entries.length} entr${entries.length===1?'y was':'ies were'} settled after all 20 numbers were drawn.`);
@@ -912,11 +965,17 @@ function tickDraw(){
   if(typeof updateRoundView==='function')updateRoundView();
 }
 // Save before the app is closed or hidden, and re-load the saved wallet when it comes back.
-window.addEventListener('pagehide', saveVirtualBalance);
-document.addEventListener('visibilitychange',()=>{
-  if(document.hidden) saveVirtualBalance();
-  else if(tg?.initData) verifyTelegramRegistration();
+window.addEventListener('pagehide',()=>{saveVirtualBalance();flushSettlements();});
+window.addEventListener('online',()=>{flushSettlements();});
+document.addEventListener('visibilitychange',async()=>{
+  if(!supabaseClient)return;
+  if(document.hidden){saveVirtualBalance();flushSettlements();return}
+  try{const {data}=await supabaseClient.auth.getSession();if(data?.session)await loadPlayerWallet(data.session);}catch(_){}
+  syncBalanceFromServer();
 });
+setInterval(()=>{if(!document.hidden)flushSettlements();},30000);
+setInterval(()=>{if(!document.hidden)syncBalanceFromServer();},15000);
+window.addEventListener('online',()=>{syncBalanceFromServer();});
 function startCountdown(){
   if(timerInterval)clearInterval(timerInterval);
   tickDraw();
@@ -937,13 +996,13 @@ document.querySelectorAll('[data-bet]').forEach(b=>b.onclick=()=>{document.getEl
 document.getElementById('bet').addEventListener('input',updateStakeUI);
 document.getElementById('bet').addEventListener('change',()=>{const v=readStake();document.getElementById('bet').value=v||MIN_STAKE;updateStakeUI();});
 document.getElementById('playBtn').onclick=()=>{
- if(!isTelegramRegistered){status('Register through the Keno X Telegram bot first.');return}
+ if(!walletUserId){status('Log in with your email in the Wallet tab first.');return}
  if(!clockReady){status('Syncing the practice draw… please try again shortly.');return}
  if(!inEntryWindow()){status('The draw is in progress. Choose numbers for the next practice round.');return}
  if(selected.size<1){status('Choose at least one number first.');return}
  const stake=readStake();
  if(!Number.isFinite(stake)||stake<MIN_STAKE||stake>MAX_STAKE||stake%10!==0){status(`Enter a stake between ${MIN_STAKE} and ${MAX_STAKE} points, in steps of 10.`);return}
- if(stake>availableBalance()){status(walletUserId?`Not enough balance. Available: ${fmt(availableBalance())} (${fmt(pendingStake())} already staked on ${queuedEntries.length} entr${queuedEntries.length===1?'y':'ies'}).`:'Not enough balance for this stake. Register through the Telegram bot to use practice points.');return}
+ if(stake>availableBalance()){status(walletUserId?`Not enough balance. Available: ${fmt(availableBalance())} (${fmt(pendingStake())} already staked on ${queuedEntries.length} entr${queuedEntries.length===1?'y':'ies'}).`:'Not enough balance for this stake. Log in to see your balance.');return}
  const picks=[...selected].sort((a,b)=>a-b);
  queuedEntries.push({id:++entrySeq,picks,stake,mode:'demo'});
  recordStakeOnline();
@@ -994,311 +1053,430 @@ document.getElementById('walletNav')?.addEventListener('click', () => showAppPan
 document.getElementById('leaderNav')?.addEventListener('click', () => showAppPanel('leader'));
 document.getElementById('adminNav')?.addEventListener('click', () => loadAdminDashboard());
 document.getElementById('startKenoBtn')?.addEventListener('click', () => showAppPanel('keno'));
+// The account form is placed directly inside the Wallet tab.
+document.getElementById('walletBalanceSlot').appendChild(homePanel.querySelector('.home-balance'));
 
-// Telegram contact registration is completed by the bot and saved in Supabase.
-// This Mini App verifies Telegram's signed initData through a secure Edge Function.
-function updateTelegramRegistrationUI(registered, message) {
-  isTelegramRegistered = !!registered;
-  const status = document.getElementById('telegramRegistrationStatus');
-  if (status) {
-    status.textContent = message;
-    status.style.color = registered ? '#a8ffd0' : '#ffb2a8';
-  }
+// Telebirr is displayed as an informational payment method, not a clickable control.
+// Deposit and withdrawal actions open a Telegram chat with the administrator.
+document.getElementById('walletDepositBtn').onclick=()=>openTelegramAdmin('deposit');
+document.getElementById('walletWithdrawBtn').onclick=()=>openTelegramAdmin('withdraw');
+document.getElementById('gateWalletBtn')?.addEventListener('click',()=>showAppPanel('wallet'));
 
-  const gate = document.getElementById('registrationGate');
-  if (gate) gate.hidden = registered;
-
-  document.querySelectorAll('#numberGrid .num, #clearBtn, #randomBtn, #bet, [data-bet]')
-    .forEach(el => { el.disabled = !registered; });
-
-  const play = document.getElementById('playBtn');
-  if (play) {
-    play.disabled = !registered;
-    play.textContent = registered ? joinLabel() : '🔒 Register with Telegram bot first';
-  }
-
-  const homeStart = document.getElementById('startKenoBtn');
-  if (homeStart) {
-    homeStart.disabled = !registered;
-    homeStart.textContent = registered ? 'Start playing in Keno →' : 'Registration required';
-  }
-
-  const stakeBalance = document.getElementById('stakeBalance');
-  if (stakeBalance) {
-    stakeBalance.hidden = !registered;
-    stakeBalance.textContent = registered ? 'Practice points: ' + fmt(balance) : '';
-  }
-
-  const walletSlot = document.getElementById('walletBalanceSlot');
-  if (walletSlot) walletSlot.hidden = true;
-
-  if (typeof updateStakeUI === 'function') updateStakeUI();
+function openTelegramAdmin(action='general'){
+  const messages={
+    deposit:'Hello admin, I would like to make a deposit to my Keno X wallet.',
+    withdraw:'Hello admin, I would like to request a withdrawal from my Keno X wallet.',
+    general:'Hello admin, I need help with Keno X.'
+  };
+  const message=messages[action]||messages.general;
+  window.open('https://t.me/habesha_keno?text='+encodeURIComponent(message),'_blank','noopener');
 }
-
-function maskPhone(phone) {
-  const value = String(phone || '');
-  if (value.length < 6) return '';
-  return value.slice(0, 4) + '••••' + value.slice(-3);
+let paymentAction='deposit';
+const paymentBackdrop=document.getElementById('paymentModalBackdrop');
+const paymentAmount=document.getElementById('paymentAmount');
+const paymentFeedback=document.getElementById('paymentFeedback');
+function openPaymentScreen(action){
+  paymentAction=action;
+  const isDeposit=action==='deposit';
+  document.getElementById('paymentModalTitle').textContent=isDeposit?'Telebirr — Deposit':'Telebirr — Withdrawal request';
+  document.getElementById('paymentModalSubtitle').textContent=isDeposit
+    ?'Enter an amount in ETB. You will continue to the provider-hosted checkout.'
+    :'Submit a withdrawal request for secure server-side review.';
+  document.getElementById('paymentAmountLabel').textContent='Amount (ETB)';
+  document.getElementById('confirmDemoPayment').textContent=isDeposit?'＋ Continue to Telebirr':'↗ Submit withdrawal request';
+  paymentAmount.value='100';
+  paymentAmount.max=isDeposit?'10000':String(Math.max(10,balance));
+  paymentAmount.step='1';
+  paymentFeedback.classList.remove('show');paymentFeedback.textContent='';
+  paymentBackdrop.classList.add('open');paymentBackdrop.setAttribute('aria-hidden','false');
+  setTimeout(()=>paymentAmount.focus(),60);
 }
-
-async function verifyTelegramRegistration() {
-  const play = document.getElementById('playBtn');
-  if (play) play.disabled = true;
-
-  if (!tg || !tg.initData || !tg.initDataUnsafe?.user?.id) {
-    updateTelegramRegistrationUI(false,
-      'Open Keno X from the Telegram bot after sharing your own contact.');
-    return;
+function closePaymentScreen(){paymentBackdrop.classList.remove('open');paymentBackdrop.setAttribute('aria-hidden','true')}
+document.getElementById('closePaymentModal').onclick=closePaymentScreen;
+paymentBackdrop.addEventListener('click',e=>{if(e.target===paymentBackdrop)closePaymentScreen()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closePaymentScreen()});
+document.querySelectorAll('[data-demo-amount]').forEach(b=>b.onclick=()=>{paymentAmount.value=b.dataset.demoAmount});
+function showPaymentMessage(message,isError=false){
+  paymentFeedback.textContent=message;
+  paymentFeedback.style.borderColor=isError?'#a74747':'#167c4b';
+  paymentFeedback.style.background=isError?'#2a1111':'#092217';
+  paymentFeedback.style.color=isError?'#ffd0d0':'#c9ffe0';
+  paymentFeedback.classList.add('show');
+}
+document.getElementById('confirmDemoPayment').onclick=async()=>{
+  const amount=Number(paymentAmount.value);
+  if(!Number.isFinite(amount)||!Number.isInteger(amount)||amount<10||amount>10000){
+    showPaymentMessage('Enter a whole ETB amount between 10 and 10,000.',true);return;
   }
-
-  if (!supabaseClient) {
-    updateTelegramRegistrationUI(false, 'Registration service is unavailable. Please try again later.');
-    return;
-  }
-
-  try {
-    const { data, error } = await supabaseClient.functions.invoke(
-      'check-telegram-registration',
-      { body: { initData: tg.initData } }
-    );
-    if (error) throw error;
-
-    if (data?.registered === true) {
-      telegramPlayer = data.player || { telegram_id: tg.initDataUnsafe.user.id };
-      const telegramUser = tg.initDataUnsafe?.user;
-
-const name = telegramUser?.username
-    ? '@' + telegramUser.username
-    : (telegramUser?.first_name || 'Player');
-      const phone = maskPhone(telegramPlayer.phone_number || telegramPlayer.phone);
-      const phoneText = phone ? ' • Contact: ' + phone : '';
-      updateTelegramRegistrationUI(true,
-        '✅ Registered as ' + name + phoneText + '. Your registration is saved. You can play free practice rounds.');
-
-      // Keep practice points separate for each Telegram account on this device.
-      try {
-        const key = 'keno_x_telegram_points_' + String(tg.initDataUnsafe.user.id);
-        const saved = localStorage.getItem(key);
-        if (saved !== null && Number.isFinite(Number(saved))) {
-          balance = Math.max(0, Number(saved));
-        } else {
-          saveVirtualBalance();
-        }
-      } catch (_) {}
-      try{const g=localStorage.getItem('keno_x_telegram_games_'+String(tg.initDataUnsafe.user.id));if(g!==null&&Number.isFinite(Number(g)))gamesPlayed=Number(g);}catch(_){}
-      renderModeBalance();
-      loadTgWallet(false);
-    } else {
-      telegramPlayer = null;
-      updateTelegramRegistrationUI(false,
-        '⚠️ No saved contact registration was found. Return to the Keno X bot and share your own contact first.');
+  if(!supabaseClient){showPaymentMessage('Payment service is not configured. Please contact the app administrator.',true);return;}
+  const button=document.getElementById('confirmDemoPayment');
+  button.disabled=true;
+  button.textContent='Connecting securely…';
+  try{
+    const {data:sessionData,error:sessionError}=await supabaseClient.auth.getSession();
+    if(sessionError)throw sessionError;
+    if(!sessionData?.session){
+      showPaymentMessage('Please sign in to your Keno X account before making a payment.',true);return;
     }
+    if(paymentAction==='deposit'){
+      // The Edge Function must create a provider checkout session using server-held credentials.
+      // It must NOT trust client-supplied balances or mark a deposit paid.
+      const {data,error}=await supabaseClient.functions.invoke('create-telebirr-payment',{
+        body:{amount_etb:amount,currency:'ETB'}
+      });
+      if(error)throw error;
+      const checkoutUrl=data?.checkout_url||data?.checkoutUrl||data?.url;
+      if(!checkoutUrl||!/^https:\/\//i.test(checkoutUrl))throw new Error('Payment server did not return a valid secure checkout URL.');
+      showPaymentMessage('Opening secure Telebirr checkout. Your wallet will update only after the server verifies payment.');
+      if(tg&&typeof tg.openLink==='function')tg.openLink(checkoutUrl);
+      else window.location.href=checkoutUrl;
+    }else{
+      // Withdrawal requests are recorded server-side; funds must only be sent after admin/provider review.
+      const {data,error}=await supabaseClient.functions.invoke('request-telebirr-withdrawal',{
+        body:{amount_etb:amount,currency:'ETB'}
+      });
+      if(error)throw error;
+      if(data?.success===false)throw new Error(data?.message||'The withdrawal request was not accepted.');
+      showPaymentMessage(data?.message||'Your withdrawal request was submitted for review. No money has been sent yet.');
+    }
+  }catch(error){
+    console.error('Telebirr payment request failed:',error);
+    showPaymentMessage(error?.message||'Could not connect to the payment service. Please try again later.',true);
+  }finally{
+    button.disabled=false;
+    button.textContent=paymentAction==='deposit'?'＋ Continue to Telebirr':'↗ Submit withdrawal request';
+  }
+};
+document.querySelectorAll('[data-method]').forEach(b=>b.onclick=()=>{if(b.dataset.method==='Telebirr')openPaymentScreen('deposit');});
+document.getElementById('refreshBalance').onclick=async()=>{const result=await supabaseClient.auth.getSession();if(result.data?.session)await loadPlayerWallet(result.data.session);syncHomeBalance();renderModeBalance();document.getElementById('refreshBalance').textContent='✓ Updated';setTimeout(()=>document.getElementById('refreshBalance').textContent='↻ Refresh',1200);};
+
+renderWalletHistory();syncHomeBalance();
+applyAccessState();
+
+// Playing needs a logged-in account: lock the grid, stake and Join button until the player signs in.
+function applyAccessState(){
+  const ok=!!walletUserId;
+  const gate=document.getElementById('registrationGate');if(gate)gate.hidden=ok;
+  document.querySelectorAll('#numberGrid .num, #clearBtn, #randomBtn, #bet, [data-bet]').forEach(el=>{el.disabled=!ok;});
+  const play=document.getElementById('playBtn');
+  if(play){play.disabled=!ok;play.textContent=ok?joinLabel():'🔒 Log in with your email first';}
+  const homeStart=document.getElementById('startKenoBtn');
+  if(homeStart){homeStart.disabled=!ok;homeStart.textContent=ok?'Start playing in Keno →':'Log in to play';}
+  if(typeof updateStakeUI==='function')updateStakeUI();
+}
+// Supabase client was initialized at the start of this script.
+const accountFeedback=document.getElementById('accountFeedback');
+const signedOutBox=document.getElementById('accountSignedOut');
+const signedInBox=document.getElementById('accountSignedIn');
+const loginPanel=document.getElementById('loginPanel');
+const registerPanel=document.getElementById('registerPanel');
+function setAccountTab(tab){
+  const isLogin=tab==='login';
+  loginPanel.hidden=!isLogin; registerPanel.hidden=isLogin;
+  document.getElementById('loginTabBtn').classList.toggle('active',isLogin);
+  document.getElementById('registerTabBtn').classList.toggle('active',!isLogin);
+  document.getElementById('loginTabBtn').setAttribute('aria-selected',String(isLogin));
+  document.getElementById('registerTabBtn').setAttribute('aria-selected',String(!isLogin));
+  accountFeedback.textContent='';
+}
+document.getElementById('loginTabBtn').addEventListener('click',()=>setAccountTab('login'));
+document.getElementById('registerTabBtn').addEventListener('click',()=>setAccountTab('register'));
+function accountMessage(message,isError=false){accountFeedback.textContent=message;accountFeedback.style.color=isError?'#ffb2a8':'#ffe29a';}
+async function showAccountSession(session) {
+  if(!session){walletUserId=null;adminPointsBalance=0;walletHistory=[];balance=0;gamesPlayed=0;try{localStorage.removeItem(WALLET_BALANCE_KEY);}catch(_){}setSync(true,'');if(typeof renderModeBalance==='function')renderModeBalance();}
+  const walletHistoryCard=document.getElementById('walletHistoryCard');
+  if(walletHistoryCard)walletHistoryCard.hidden=!session;
+  signedOutBox.hidden = !!session;
+  signedInBox.hidden = !session;
+
+  // Do not show the available-balance card in Wallet before the player signs in.
+  const walletBalanceSlot = document.getElementById('walletBalanceSlot');
+  if (walletBalanceSlot) walletBalanceSlot.hidden = !session;
+
+  // Keep the Home tab clean after login: hide demo-mode and wallet/payment actions.
+  const homePaymentActions = document.querySelector('#homePanel .payment-actions');
+  const homePaymentCard = document.querySelector('#homePanel .payment-card');
+  if (homePaymentActions) homePaymentActions.hidden = !!session;
+  if (homePaymentCard) homePaymentCard.hidden = !!session;
+
+  if (session) {
+    const username =
+      session.user.user_metadata?.username || session.user.email || "Player";
+
+    document.getElementById("accountStatus").textContent =
+      `Signed in as ${username}. Your player profile is connected.`;
+
+    await loadPlayerWallet(session);
+    loadWalletHistoryForPlayer();
+    // Signed-in players see only the administrator-assigned balance.
+    setGameMode('real');
+    const modeSwitch = document.querySelector('.mode-switch');
+    if (modeSwitch) modeSwitch.hidden = true;
+    await checkAdminAccess();
+  } else {
+    renderWalletHistory();
+    document.getElementById("accountStatus").textContent = "";
+    const modeSwitch = document.querySelector('.mode-switch');
+    if (modeSwitch) modeSwitch.hidden = false;
+    setGameMode('demo');
+    const adminNavBtn=document.getElementById('adminNav');if(adminNavBtn)adminNavBtn.hidden=true;
+  }
+  applyAccessState();
+  if(typeof renderWalletStats==='function')renderWalletStats();
+}
+
+async function checkAdminAccess() {
+  const adminNavBtn=document.getElementById('adminNav');
+  if(adminNavBtn)adminNavBtn.hidden=true;
+  try {
+    const { data, error } = await supabaseClient.functions.invoke("admin-players");
+    if (error || !Array.isArray(data?.players)) return;
+    if(adminNavBtn)adminNavBtn.hidden=false;
   } catch (error) {
-    console.error('Telegram registration verification failed:', error);
-    updateTelegramRegistrationUI(false,
-      'Could not verify registration. Please reopen the game from the Telegram bot.');
+    console.error("Admin access check failed:", error);
   }
 }
 
-document.getElementById('refreshTelegramRegistration')?.addEventListener('click', verifyTelegramRegistration);
-updateTelegramRegistrationUI(false, 'Checking your Telegram contact registration…');
-verifyTelegramRegistration();
+const EMAIL_RE=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+let lastLoginEmail='';
+function friendlyAuthError(error){
+  const m=String(error?.message||'').toLowerCase();
+  if(m.includes('invalid login'))return 'Incorrect email or password.';
+  if(m.includes('not confirmed'))return 'Please verify your email first. Open the link we sent you, then log in.';
+  if(m.includes('rate limit')||m.includes('too many'))return 'Too many attempts. Please wait a minute and try again.';
+  if(m.includes('already registered'))return 'This email is already registered. Please log in instead.';
+  if(m.includes('password')&&m.includes('characters'))return 'Choose a stronger password (at least 8 characters).';
+  return String(error?.message||'Something went wrong. Please try again.');
+}
+function randomPlayerName(){
+  const chars='abcdefghjkmnpqrstuvwxyz23456789';let r='';
+  for(let i=0;i<5;i++)r+=chars[Math.floor(Math.random()*chars.length)];
+  return 'Player_'+r;
+}
+document.getElementById('loginForm').addEventListener('submit',async(event)=>{
+  event.preventDefault();
+  if(!supabaseClient){accountMessage('Account service is unavailable. Refresh and try again.',true);return;}
+  const email=document.getElementById('loginEmail').value.trim().toLowerCase();
+  const password=document.getElementById('loginPassword').value;
+  const resend=document.getElementById('resendBtn');resend.hidden=true;
+  if(!EMAIL_RE.test(email)){accountMessage('Enter a valid email address.',true);return;}
+  if(!password){accountMessage('Enter your password.',true);return;}
+  lastLoginEmail=email;
+  const button=document.getElementById('loginBtn');button.disabled=true;button.textContent='Checking…';
+  accountMessage('Signing in…');
+  try{
+    const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
+    if(error)throw error;
+    accountMessage('Login successful.');
+    await showAccountSession(data.session);
+    event.target.reset();
+  }catch(error){
+    console.error('Email login failed:',error);
+    accountMessage(friendlyAuthError(error),true);
+    if(String(error?.message||'').toLowerCase().includes('not confirmed'))resend.hidden=false;
+  }finally{button.disabled=false;button.textContent='Login';}
+});
+document.getElementById('resendBtn').addEventListener('click',async()=>{
+  if(!supabaseClient||!lastLoginEmail)return;
+  const btn=document.getElementById('resendBtn');btn.disabled=true;
+  try{
+    const {error}=await supabaseClient.auth.resend({type:'signup',email:lastLoginEmail});
+    if(error)throw error;
+    accountMessage('Verification email sent to '+lastLoginEmail+'. Check your inbox (and spam folder).');
+  }catch(error){accountMessage(friendlyAuthError(error),true);}
+  finally{btn.disabled=false;}
+});
+document.getElementById('registerForm').addEventListener('submit',async(event)=>{
+  event.preventDefault();
+  if(!supabaseClient){accountMessage('Account service is unavailable. Refresh and try again.',true);return;}
+  const email=document.getElementById('regEmail').value.trim().toLowerCase();
+  const typedName=document.getElementById('regUsername').value.trim();
+  const password=document.getElementById('regPassword').value;
+  const confirm=document.getElementById('regConfirm').value;
+  if(!EMAIL_RE.test(email)){accountMessage('Enter a valid email address.',true);return;}
+  if(typedName&&!/^[A-Za-z0-9_]{3,20}$/.test(typedName)){accountMessage('Display name must be 3–20 characters: letters, numbers, and underscores only (or leave it blank).',true);return;}
+  if(password.length<8){accountMessage('Choose a password with at least 8 characters.',true);return;}
+  if(password!==confirm){accountMessage('The passwords do not match.',true);return;}
+  const button=document.getElementById('registerBtn');button.disabled=true;button.textContent='Creating account…';
+  accountMessage('Creating your account…');
+  try{
+    let username=typedName||randomPlayerName(), result;
+    for(let attempt=0;attempt<3;attempt++){
+      result=await supabaseClient.auth.signUp({email,password,options:{data:{username}}});
+      const msg=String(result.error?.message||'').toLowerCase();
+      const nameTaken=result.error&&(msg.includes('duplicate')||msg.includes('unique')||msg.includes('database error'));
+      if(nameTaken&&!typedName){username=randomPlayerName();continue;}   // auto-generated name collided: try another
+      if(nameTaken&&typedName){accountMessage('That display name is already taken. Choose another or leave it blank.',true);return;}
+      break;
+    }
+    const {data,error}=result;
+    if(error)throw error;
+    // With email confirmation on, an existing email returns a user with no identities and no error.
+    if(data.user&&Array.isArray(data.user.identities)&&data.user.identities.length===0){
+      accountMessage('This email is already registered. Please log in instead.',true);return;
+    }
+    if(data.session){accountMessage('Account created successfully. Your profile is ready.');showAccountSession(data.session);}
+    else accountMessage('Almost done! We sent a verification link to '+email+'. Open it, then come back and log in.');
+    event.target.reset();
+  }catch(error){
+    console.error('Registration failed:',error);
+    accountMessage(friendlyAuthError(error),true);
+  }finally{button.disabled=false;button.textContent='Create account';}
+});
+document.getElementById('signOutBtn').addEventListener('click',async()=>{
+  if(!supabaseClient)return;
+  const {error}=await supabaseClient.auth.signOut();
+  if(error){accountMessage('Could not sign out. Please try again.',true);return;}
+  queuedEntries.length=0;
+  await showAccountSession(null);
+  setAccountTab('login');
+  accountMessage('You have signed out.');
+});
+
+// Also reset when the session ends elsewhere (expired, signed out in another tab).
+if(supabaseClient)supabaseClient.auth.onAuthStateChange((event)=>{
+  if(event==='SIGNED_OUT'&&walletUserId){queuedEntries.length=0;showAccountSession(null);}
+});
 
 // ---------- Admin dashboard ----------
 // Shows every player's balance (welcome points + admin-assigned points) and updates right after
 // an admin adds or deducts points. It also refreshes itself every 15 seconds while it is open.
-const adminState={telegramRegistrations:[],wallets:{},drafts:{},msgs:{},busy:new Set(),flashId:null,walletError:null,search:'',sort:'newest',updatedAt:null,loading:false,timer:null,error:null};
+const adminState={players:[],transactions:[],search:'',sort:'points',flashId:null,updatedAt:null,loading:false,timer:null,changed:{},activity:[],stakeSeen:{},live:false};
 const escHtml=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pts=v=>Number(v||0).toLocaleString('en-US',{maximumFractionDigits:2});
 const playerTotal=p=>Number(p.practice_balance||0);
 
-function renderAdminDashboard(auto){
-  const dash=document.getElementById('adminDashboard');
-  if(!dash)return;
-  const list=document.getElementById('telegramRegistrationList');
-  // Don't wipe what the admin is typing during the automatic refresh.
-  if(auto===true&&list&&list.contains(document.activeElement)&&document.activeElement.tagName==='INPUT')return;
-  if(list)list.querySelectorAll('.arow').forEach(row=>{
-    adminState.drafts[row.dataset.id]={amt:row.querySelector('[data-amt]').value,reason:row.querySelector('[data-reason]').value};
-  });
-  const rows=(adminState.telegramRegistrations||[]).filter(r =>
-    r && r.telegram_id !== null && r.telegram_id !== undefined && String(r.telegram_id).trim() !== ''
-  );
-  const wmap=adminState.wallets||{};
-  const view=rows.map(r=>{
-    const id=String(r.telegram_id), w=wmap[id];
-    return {r,id,w,balance:w?Number(w.balance):START_BALANCE,games:w?Number(w.games_played||0):0};
-  });
-  const q=String(adminState.search||'').trim().toLowerCase();
-  const filtered=view.filter(v=>v.id.toLowerCase().includes(q));
-  if(adminState.sort==='newest') filtered.sort((a,b)=>new Date(b.r.registered_at||0)-new Date(a.r.registered_at||0));
-  else if(adminState.sort==='balance') filtered.sort((a,b)=>b.balance-a.balance);
-  else if(adminState.sort==='games') filtered.sort((a,b)=>b.games-a.games);
-  else filtered.sort((a,b)=>a.id.localeCompare(b.id,undefined,{numeric:true}));
-
-  const box=(label,val)=>`<div style="background:#1d1436;padding:15px;border-radius:10px;flex:1;min-width:140px"><h3 style="margin:0 0 6px;font-size:13px;color:#5ee7f7">${label}</h3><h2 style="margin:0">${val}</h2></div>`;
-  const summary=document.getElementById('adminSummary');
-  if(summary) summary.innerHTML=box('Telegram Registrations',rows.length)+box('Total practice points',pts(view.reduce((t,v)=>t+v.balance,0)))+box('Total games played',pts(view.reduce((t,v)=>t+v.games,0)));
-  if(list){
-    if(adminState.error){
-      list.innerHTML=`<p style="color:#ffb2a8">Could not load Telegram registrations: ${escHtml(adminState.error)}</p>`;
-    }else if(!filtered.length){
-      list.innerHTML=(adminState.walletError?`<p style="color:#ffb2a8">Balances unavailable: ${escHtml(adminState.walletError)}</p>`:'')+'<p style="color:#a8b4aa">No Telegram contact registrations found.</p>';
-    }else{
-      list.innerHTML=(adminState.walletError?`<p style="color:#ffb2a8">Balances unavailable: ${escHtml(adminState.walletError)}. Deploy the admin-wallets / admin-adjust-balance functions and run the SQL setup.</p>`:'')+
-      filtered.map((v,i)=>{
-        const m=adminState.msgs[v.id];
-        const w=v.w;
-        return `<div class="arow${adminState.flashId===v.id?' flash':''}" data-id="${escHtml(v.id)}">
-          <strong>#${i+1} Registered Telegram Player</strong>
-          <p style="margin:6px 0;color:#83f3ff;overflow-wrap:anywhere">Telegram ID: <b>${escHtml(v.id)}</b></p>
-          <small style="color:#a8b4aa">Registered: ${v.r.registered_at?new Date(v.r.registered_at).toLocaleString():'—'}${w?'':' • wallet not opened yet (shows starting balance)'}</small>
-          <div class="arow-stats">
-            <div>Practice balance<b>${pts(v.balance)}</b></div>
-            <div>Games played<b>${pts(v.games)}</b></div>
-            <div>Total staked<b>${pts(w?w.total_staked:0)}</b></div>
-            <div>Total won<b>${pts(w?w.total_won:0)}</b></div>
-          </div>
-          <div class="arow-ctl">
-            <input data-amt type="number" min="1" max="1000000" step="any" inputmode="decimal" placeholder="Amount">
-            <input data-reason type="text" maxlength="120" placeholder="Reason (optional)">
-            <button class="abtn add" type="button" data-act="ADD">+ Add</button>
-            <button class="abtn ded" type="button" data-act="DEDUCT">− Deduct</button>
-          </div>
-          <div class="amsg${m?(m.ok?' ok':' err'):''}" data-msg>${m?escHtml(m.t):''}</div>
-        </div>`;
-      }).join('');
-      list.querySelectorAll('.arow').forEach(row=>{
-        const d=adminState.drafts[row.dataset.id];
-        if(d){row.querySelector('[data-amt]').value=d.amt||'';row.querySelector('[data-reason]').value=d.reason||'';}
-        if(adminState.busy.has(row.dataset.id))row.querySelectorAll('button').forEach(b=>b.disabled=true);
-      });
-    }
-  }
-  const updated=document.getElementById('adminUpdated');
-  if(updated&&adminState.updatedAt){const d=new Date(adminState.updatedAt);updated.textContent=`Updated ${d.toLocaleTimeString()}`;}
+function renderAdminDashboard(){
+  const dash=document.getElementById('adminDashboard');if(!dash)return;
+  const players=adminState.players, byId=new Map(players.map(p=>[p.id,p]));
+  const totalAll=players.reduce((t,p)=>t+playerTotal(p),0);
+  const totalAdmin=players.reduce((t,p)=>t+Number(p.admin_points||0),0);
+  const games=players.reduce((t,p)=>t+Number(p.games_played||0),0);
+  const cards=[['Total Players',players.length],['Total Games Played',games],['All Players\' Balance',pts(totalAll)],['Average Per Player',pts(players.length?totalAll/players.length:0)]];
+  document.getElementById('adminSummary').innerHTML=cards.map(([k,v])=>`<div style="background:#1d1436;padding:15px;border-radius:10px;flex:1;min-width:140px"><h3 style="margin:0 0 6px;font-size:13px;color:#5ee7f7">${k}</h3><h2 style="margin:0">${v}</h2></div>`).join('');
+  const q=adminState.search.toLowerCase();
+  const list=players.filter(p=>((p.username||'')+' '+(p.email||'')).toLowerCase().includes(q));
+  if(adminState.sort==='points')list.sort((x,y)=>playerTotal(y)-playerTotal(x));
+  else if(adminState.sort==='name')list.sort((x,y)=>String(x.username||'').localeCompare(String(y.username||'')));
+  else list.sort((x,y)=>new Date(y.created_at||0)-new Date(x.created_at||0));
+  document.getElementById('playerList').innerHTML=list.map((player,i)=>`
+    <div style="padding:12px;border-bottom:1px solid #555;${(adminState.flashId===player.id||(adminState.changed[player.id]&&Date.now()-adminState.changed[player.id].at<8000))?'background:#10372a;transition:background .6s;':''}">
+      <strong>#${i+1} ${escHtml(player.username||'No username')}</strong>${(adminState.changed[player.id]&&adminState.changed[player.id].delta)?` <span style="font-size:12px;font-weight:800;color:${adminState.changed[player.id].delta>=0?'#19dc83':'#ff8a8a'}">${adminState.changed[player.id].delta>=0?'▲ +':'▼ −'}${pts(Math.abs(adminState.changed[player.id].delta))} • last result ${new Date(adminState.changed[player.id].at).toLocaleTimeString()}</span>`:''}
+      <p style="margin:4px 0">${escHtml(player.email||'No email')}</p>
+      <p style="margin:4px 0">Games Played: ${player.games_played??0}</p>
+      <p style="margin:4px 0;font-size:16px;color:#83f3ff">Balance: <b>${pts(player.practice_balance)}</b> <small style="color:#a8b4aa">(the balance this player stakes with)</small></p>
+      ${Number(player.staked_now||0)>0?`<p style="margin:4px 0;color:#ffcf66;font-weight:800">🎟 Staked this round: ${pts(player.staked_now)} (${player.entries_now||0} entr${Number(player.entries_now)===1?'y':'ies'}) — balance changes after the draw. After this stake: ${pts(Math.max(0,Number(player.practice_balance||0)-Number(player.staked_now)))}</p>`:''}
+      ${Number(player.admin_points||0)>0?`<p style="margin:4px 0;color:#a8b4aa"><small>Older admin-assigned points (not used for staking): ${pts(player.admin_points)}</small></p>`:''}
+      <button onclick="adjustAdminPoints('${escHtml(player.id)}','ADD')" style="background:#16834a;color:white;padding:8px;border:0;border-radius:5px;cursor:pointer;">+ Add Balance</button>
+      <button onclick="adjustAdminPoints('${escHtml(player.id)}','DEDUCT')" style="background:#a83232;color:white;padding:8px;border:0;border-radius:5px;cursor:pointer;margin-left:5px;">- Deduct Balance</button>
+      <p style="margin:6px 0 0">Account Status: ${escHtml(player.account_status||'Registered')}</p>
+      <small>Joined: ${player.created_at?new Date(player.created_at).toLocaleDateString():'—'}</small>
+    </div>`).join('')||'<p>No players found.</p>';
+  const la=document.getElementById('liveActivity');
+  if(la)la.innerHTML=adminState.activity.length?adminState.activity.map(a=>a.kind==='stake'?`<div style="padding:8px 0;border-bottom:1px solid #444;font-size:13px"><span style="color:#a8b4aa">${new Date(a.at).toLocaleTimeString()}</span> • <b>${escHtml(a.name)}</b> <span style="color:#ffcf66">staked ${pts(a.amount)}</span> (${a.entries} entr${a.entries===1?'y':'ies'}) — waiting for the draw</div>`:`<div style="padding:8px 0;border-bottom:1px solid #444;font-size:13px"><span style="color:#a8b4aa">${new Date(a.at).toLocaleTimeString()}</span> • <b>${escHtml(a.name)}</b> ${a.delta>=0?'<span style="color:#19dc83">gained +':'<span style="color:#ff8a8a">lost −'}${pts(Math.abs(a.delta))}</span> (${pts(a.from)} → ${pts(a.to)})</div>`).join(''):'<p style="color:#a8b4aa;font-size:13px">No changes yet — waiting for players to finish a draw.</p>';
+  const tx=adminState.transactions;
+  document.getElementById('transactionList').innerHTML=tx.length?tx.map(t=>{
+    const who=byId.get(t.auth_user_id);const add=t.transaction_type==='ADD';
+    return `<div style="padding:12px;border-bottom:1px solid #555;">
+      <strong>${add?'➕ Added':'➖ Deducted'}</strong>
+      <p style="margin:4px 0">Amount: ${pts(t.amount)} Balance</p>
+      <p style="margin:4px 0">Player: ${escHtml(who?.username||t.auth_user_id)}</p>
+      <p style="margin:4px 0">Reason: ${escHtml(t.reason||'No reason provided')}</p>
+      <small>${new Date(t.created_at).toLocaleString()}</small></div>`;
+  }).join(''):'<p>No transactions yet.</p>';
+  const ln=document.getElementById('adminLiveNote');
+  if(ln){ln.style.color=adminState.live?'#19dc83':'#ffb86b';ln.textContent=adminState.live?'✓ Live data: balances and stakes come straight from the database.':'⚠ Basic data only. For live balances and stakes, run supabase_practice_settlement.sql and add your admin account to keno_admins (see the SQL file).';}
+  const u=document.getElementById('adminUpdated');
+  if(u&&adminState.updatedAt){const d=new Date(adminState.updatedAt);u.textContent=`Updated ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;}
 }
 
-async function fnErrorMessage(err){
-  try{const j=await err.context.json();return j?.error||j?.message||err.message;}catch(_){return err?.message||'Unknown error';}
-}
 async function refreshAdminData(silent=true){
   if(adminState.loading)return;
   adminState.loading=true;
-  adminState.error=null;
-  adminState.walletError=null;
-  const headers={'x-telegram-init-data':tg?.initData||''};
   try{
-    const [regRes,walRes]=await Promise.all([
-      supabaseClient.functions.invoke('admin-telegram-registrations',{headers}),
-      supabaseClient.functions.invoke('admin-wallets',{headers})
-    ]);
-    if(regRes.error)throw regRes.error;
-    if(!Array.isArray(regRes.data?.registrations)){
-      throw new Error(regRes.data?.error||'The function did not return a registrations list.');
+    const { data, error } = await supabaseClient.functions.invoke('admin-players');
+    if(error)throw error;
+    const fresh=data?.players??[];
+    // Live balances and open stakes straight from the database (needs the SQL setup); otherwise basic data only.
+    let live=null;
+    try{const r=await supabaseClient.rpc('admin_live_player_points');if(!r.error&&Array.isArray(r.data))live=r.data;}catch(_){}
+    adminState.live=!!live;
+    if(live){
+      const byId=new Map(fresh.map(x=>[x.id,x]));
+      live.forEach(l=>{
+        let x=byId.get(l.player_id);
+        if(!x){x={id:l.player_id,username:l.username,games_played:l.rounds_played,created_at:null};fresh.push(x);byId.set(x.id,x);}
+        x.practice_balance=Number(l.balance);x.staked_now=Number(l.staked_now||0);x.entries_now=Number(l.entries_now||0);
+      });
     }
-    adminState.telegramRegistrations=regRes.data.registrations;
-    if(walRes.error){
-      adminState.walletError=await fnErrorMessage(walRes.error);
-    }else if(Array.isArray(walRes.data?.wallets)){
-      const map={};
-      walRes.data.wallets.forEach(w=>{map[String(w.telegram_id)]=w;});
-      adminState.wallets=map;
-    }else{
-      adminState.walletError=walRes.data?.error||'admin-wallets returned no data';
+    if(adminState.players.length){
+      fresh.forEach(x=>{
+        const now=Number(x.staked_now||0),before=Number(adminState.stakeSeen[x.id]||0);
+        if(now>before){
+          adminState.changed[x.id]=Object.assign({},adminState.changed[x.id]||{delta:0},{at:Date.now(),staked:now});
+          adminState.activity.unshift({kind:'stake',name:x.username||'Player',amount:now,entries:Number(x.entries_now||0),at:Date.now()});
+          adminState.activity.length=Math.min(adminState.activity.length,40);
+        }
+      });
     }
+    fresh.forEach(x=>{adminState.stakeSeen[x.id]=Number(x.staked_now||0);});
+    const prev=new Map(adminState.players.map(x=>[x.id,Number(x.practice_balance||0)]));
+    if(adminState.players.length){
+      fresh.forEach(x=>{
+        const before=prev.get(x.id),now=Number(x.practice_balance||0);
+        if(before!==undefined&&now!==before){
+          const delta=now-before;
+          adminState.changed[x.id]={delta,at:Date.now()};
+          adminState.activity.unshift({name:x.username||'Player',from:before,to:now,delta,at:Date.now()});
+          adminState.activity.length=Math.min(adminState.activity.length,40);
+        }
+      });
+    }
+    adminState.players=fresh;
+    adminState.transactions=data?.transactions??[];
     adminState.updatedAt=Date.now();
-    renderAdminDashboard(silent);
-  }catch(error){
-    console.error('Telegram registrations load failed:',error);
-    adminState.error=error?.message||'Unknown error';
     renderAdminDashboard();
-    if(!silent)alert('Telegram registration error: '+adminState.error);
+  }catch(error){
+    console.error('Admin refresh failed:',error);
+    if(!silent)alert('Admin error: '+(error?.message||'Unknown error'));
   }finally{adminState.loading=false;}
 }
 
-const TX_CLEARED_KEY='habesha_keno_admin_tx_cleared_at_v1';
-function getTxClearedAt(){try{return Number(localStorage.getItem(TX_CLEARED_KEY))||0;}catch(_){return 0;}}
-async function clearAdminTransactionHistory(){
-  if(!confirm('Clear the whole balance transaction history? This cannot be undone. Player balances are NOT changed.'))return;
-  const btn=document.getElementById('clearTxHistoryBtn');if(btn)btn.disabled=true;
-  try{
-    const {error}=await supabaseClient.rpc('admin_clear_balance_history');
-    if(error)throw error;
-    try{localStorage.removeItem(TX_CLEARED_KEY);}catch(_){}
-    adminState.transactions=[];
-    renderAdminDashboard();
-    alert('Transaction history cleared.');
-  }catch(error){
-    const missing=error?.code==='PGRST202'||error?.code==='42883';
-    if(missing){
-      // Database function not installed yet: hide the current history on this device only.
-      try{localStorage.setItem(TX_CLEARED_KEY,String(Date.now()));}catch(_){}
-      renderAdminDashboard();
-      alert('History hidden on this device only. To delete it permanently, run supabase_clear_balance_history.sql in Supabase.');
-    }else{
-      console.error('Clear history failed:',error);
-      alert('Could not clear history: '+(error?.message||'Unknown error'));
-    }
-  }finally{if(btn)btn.disabled=false;}
-}
-
-window.clearAdminTransactionHistory=clearAdminTransactionHistory;
-
-async function checkTelegramAdminAccess(){
-  const button=document.getElementById('adminNav');
-  if(!button || !tg?.initData || !supabaseClient) return;
-  button.hidden=true;
-  try{
-    const {error}=await supabaseClient.functions.invoke('admin-players',{
-      headers:{'x-telegram-init-data':tg.initData}
-    });
-    if(!error) button.hidden=false;
-  }catch(error){
-    console.warn('Telegram admin access check failed:',error);
-    button.hidden=true;
-  }
-}
-checkTelegramAdminAccess();
-
 async function loadAdminDashboard() {
   try {
-    if (!tg?.initData) {
-      alert('Open Keno X from the Telegram bot to access the administrator dashboard.');
-      return;
-    }
+    const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
+    if (sessionError) throw sessionError;
+    if (!sessionData.session) { alert('Please log in first.'); return; }
 
     if(!document.getElementById('adminDashboard')){
       const dashboard=document.createElement('div');
       dashboard.id='adminDashboard';
-      dashboard.style.cssText='position:fixed;inset:5%;background:#100c1e;color:white;padding:20px;border:2px solid #c927bb;border-radius:12px;z-index:10000;overflow:auto;';
+      dashboard.style.cssText='position:fixed;inset:5%;background:#100c1e;color:white;padding:20px;border:2px solid #3df2ff;border-radius:12px;z-index:10000;overflow:auto;';
       dashboard.innerHTML=`
         <button id="closeAdmin">Close ✕</button>
-        <h2 style="color:#c927bb">Admin Dashboard</h2>
+        <h2 style="color:#3df2ff">Admin Dashboard</h2>
         <div id="adminSummary" style="display:flex;gap:12px;flex-wrap:wrap;margin:20px 0;"></div>
-        <h3 style="color:#c927bb">Registered Telegram Players</h3>
-        <p style="font-size:12px;color:#a8b4aa">Only records containing a Telegram ID are displayed. Email-based player accounts are excluded.</p>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:15px;">
-          <input id="playerSearch" placeholder="Search by Telegram ID..." style="padding:10px;flex:1;min-width:180px;">
+          <input id="playerSearch" placeholder="Search username or email..." style="padding:10px;flex:1;min-width:180px;">
           <select id="playerSort" style="padding:10px;">
+            <option value="points">Sort: highest points</option>
+            <option value="name">Sort: name A–Z</option>
             <option value="newest">Sort: newest</option>
-            <option value="id">Sort: Telegram ID</option>
-            <option value="balance">Sort: highest balance</option>
-            <option value="games">Sort: most games played</option>
           </select>
           <button id="adminRefresh" type="button" style="padding:10px;cursor:pointer;">↻ Refresh</button>
           <small id="adminUpdated" style="color:#a8b4aa"></small>
         </div>
-        <div id="telegramRegistrationList"></div>`;
+        <div id="adminLiveNote" style="font-size:12px;margin:-6px 0 12px"></div>
+        <div id="playerList"></div>
+        <h2 style="color:#3df2ff;margin-top:25px;">Live player results</h2>
+        <p style="margin:0 0 8px;color:#a8b4aa;font-size:12px">Balance changes seen while this dashboard is open: a player's wins and losses appear here within seconds.</p>
+        <div id="liveActivity"></div>
+        <h2 style="color:#3df2ff;margin-top:25px;">Balance Transaction History</h2>
+        <div id="transactionList"></div>`;
       document.body.appendChild(dashboard);
       document.getElementById('playerSearch').addEventListener('input',e=>{adminState.search=e.target.value;renderAdminDashboard();});
       document.getElementById('playerSort').addEventListener('change',e=>{adminState.sort=e.target.value;renderAdminDashboard();});
       document.getElementById('adminRefresh').addEventListener('click',()=>refreshAdminData(false));
-      document.getElementById('telegramRegistrationList').addEventListener('click',e=>{
-        const btn=e.target.closest('[data-act]');if(!btn)return;
-        const row=btn.closest('.arow');if(!row)return;
-        adminAdjust(row.dataset.id,btn.dataset.act,row);
-      });
       document.getElementById('closeAdmin').addEventListener('click',()=>{dashboard.remove();clearInterval(adminState.timer);adminState.timer=null;});
       clearInterval(adminState.timer);
       adminState.timer=setInterval(()=>{if(!document.getElementById('adminDashboard')){clearInterval(adminState.timer);adminState.timer=null;return}if(!document.hidden)refreshAdminData(true);},5000);
@@ -1309,123 +1487,106 @@ async function loadAdminDashboard() {
     alert('Dashboard error: ' + error.message);
   }
 }
-async function adminAdjust(id,type,row){
-  if(adminState.busy.has(id))return;
-  const amtEl=row.querySelector('[data-amt]'), reasonEl=row.querySelector('[data-reason]'), msgEl=row.querySelector('[data-msg]');
-  const amount=Number(amtEl.value), reason=reasonEl.value.trim();
-  const show=(t,ok)=>{adminState.msgs[id]={t,ok};msgEl.textContent=t;msgEl.className='amsg '+(ok?'ok':'err');};
-  if(!Number.isFinite(amount)||amount<=0||amount>1000000){show('Enter a positive amount up to 1,000,000.',false);return;}
-  const known=adminState.wallets[id];
-  const current=known?Number(known.balance):START_BALANCE;
-  if(type==='DEDUCT'&&amount>current){show('Cannot deduct more than the current balance ('+pts(current)+').',false);return;}
-  adminState.busy.add(id);
-  row.querySelectorAll('button').forEach(b=>b.disabled=true);
-  show('Saving…',true);
-  try{
-    const {data,error}=await supabaseClient.functions.invoke('admin-adjust-balance',{
-      headers:{'x-telegram-init-data':tg?.initData||''},
-      body:{telegram_id:id,type,amount,reason}
-    });
-    if(error)throw new Error(await fnErrorMessage(error));
-    if(data?.error)throw new Error(data.error);
-    const nb=Number(data?.balance);
-    if(!Number.isFinite(nb))throw new Error('Server did not return the new balance.');
-    const w=adminState.wallets[id]||{telegram_id:id,games_played:0,total_staked:0,total_won:0};
-    w.balance=nb;adminState.wallets[id]=w;
-    amtEl.value='';reasonEl.value='';adminState.drafts[id]={amt:'',reason:''};
-    adminState.msgs[id]={t:`✓ ${type==='ADD'?'Added':'Deducted'} ${pts(amount)} — new balance ${pts(nb)}`,ok:true};
-    adminState.flashId=id;
-    setTimeout(()=>{if(adminState.flashId===id){adminState.flashId=null;renderAdminDashboard(true);}},4000);
-    setTimeout(()=>{delete adminState.msgs[id];renderAdminDashboard(true);},9000);
-  }catch(err){
-    console.error('Balance adjustment failed:',err);
-    const m=String(err?.message||'Failed');
-    adminState.msgs[id]={t:'✗ '+(/not found|404|Failed to send/i.test(m)?'Could not reach the admin-adjust-balance function — deploy it first. ('+m+')':m),ok:false};
-  }finally{
-    adminState.busy.delete(id);
-    renderAdminDashboard();
-    refreshAdminData(true);
+async function adjustPracticeBalance(playerId, type) {
+  const amount = prompt(
+    type === "ADD"
+      ? "Enter Practice ETB amount to add:"
+      : "Enter Practice ETB amount to deduct:"
+  );
+
+  if (amount === null) return;
+
+  const numericAmount = Number(amount);
+
+  if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+    alert("Please enter a valid positive amount.");
+    return;
+  }
+
+  const reason = prompt("Enter a reason for this adjustment:") || "";
+
+  try {
+    const { data, error } = await supabaseClient.rpc(
+      "adjust_practice_balance",
+      {
+        p_player_id: playerId,
+        p_type: type,
+        p_amount: numericAmount,
+        p_reason: reason
+      }
+    );
+
+    if (error) throw error;
+
+    alert("Practice balance updated successfully! New balance: " +
+      Number(data).toFixed(2) + " ETB");
+
+    await loadAdminDashboard();
+
+  } catch (error) {
+    console.error("Balance adjustment error:", error);
+    alert("Could not update balance: " + error.message);
   }
 }
-window.adminAdjust=adminAdjust;
-// Telegram registration is verified again each time the Mini App opens.
+
+async function adjustAdminPoints(playerId, type) {
+  const amount = prompt(type === 'ADD'
+    ? 'Enter Balance to add:'
+    : 'Enter Balance to deduct:');
+  if (amount === null) return;
+  const numericAmount = Number(amount);
+  if (!Number.isFinite(numericAmount) || numericAmount <= 0 || numericAmount > 1000000) {
+    alert('Enter a positive amount up to 1,000,000.');
+    return;
+  }
+  const reason = prompt('Reason for this adjustment (optional):') || '';
+  try {
+    // Changes the balance the player stakes with (and records the transaction).
+    const { data, error } = await supabaseClient.rpc('adjust_practice_balance', {
+      p_player_id: playerId,
+      p_type: type,
+      p_amount: numericAmount,
+      p_reason: reason
+    });
+    if (error) throw error;
+    // Show the new balance in the dashboard immediately, then confirm with fresh data from the server.
+    const row=adminState.players.find(x=>x.id===playerId);
+    if(row&&Number.isFinite(Number(data)))row.practice_balance=Number(data);
+    adminState.flashId=playerId;renderAdminDashboard();
+    setTimeout(()=>{if(adminState.flashId===playerId){adminState.flashId=null;renderAdminDashboard();}},4000);
+    refreshAdminData(true);
+    syncBalanceFromServer();
+  } catch (error) {
+    console.error('Balance adjustment failed:', error);
+    const missing=error?.code==='PGRST202'||error?.code==='42883';
+    alert(missing?'The database function adjust_practice_balance() is not installed yet.':'Could not update balance: ' + (error?.message || 'Unknown error'));
+  }
+}
+window.adjustAdminPoints = adjustAdminPoints;
+
+window.adjustPracticeBalance = adjustPracticeBalance;
+(async () => {
+  if (!supabaseClient) return;
+  try {
+    const { data, error } = await supabaseClient.auth.getSession();
+    if (error) throw error;
+    await showAccountSession(data.session);
+  } catch (error) {
+    console.error('Session restore failed:', error);
+  }
+})();
 
 </script>
 <script>
-/* Keno X: Telegram player wallet (balance + games played) saved on the server */
-const TG_PENDING_KEY='keno_x_tg_pending_settlements_v2';
-let tgChain=Promise.resolve();
-function tgExclusive(fn){const p=tgChain.then(fn);tgChain=p.catch(()=>{});return p}
-function tgUid(){return String(tg?.initDataUnsafe?.user?.id||'')}
-function loadTgPending(){try{const v=JSON.parse(localStorage.getItem(TG_PENDING_KEY)||'[]');return Array.isArray(v)?v:[]}catch(_){return[]}}
-function saveTgPending(l){try{localStorage.setItem(TG_PENDING_KEY,JSON.stringify(l.slice(-200)))}catch(_){}}
-function myTgPending(){const id=tgUid();return loadTgPending().filter(x=>x.user===id)}
-function tgPendingNet(){return myTgPending().reduce((t,x)=>t+(x.payout-x.staked),0)}
-function setWalletNote(ok,msg){const el=document.getElementById('walletSyncNote');if(!el)return;el.textContent=msg;el.style.color=ok?'#19dc83':'#ffb2a8'}
+/* Keno X: balance / games-played displays and the draw-phase view */
 function renderWalletStats(){
-  const reg=!!isTelegramRegistered;
+  const signed=!!walletUserId;
   const set=(id,t)=>{const el=document.getElementById(id);if(el)el.textContent=t};
-  set('walletBalanceBig',reg?fmt(balance):'—');
-  set('walletGamesBig',reg?fmt(gamesPlayed):'—');
-  set('gamesShown',reg?fmt(gamesPlayed):'—');
-  const mb=document.getElementById('miniBal');
-  if(mb){mb.hidden=!reg;if(reg)set('miniBalVal',fmt(availableBalance()));}
+  set('homeGames',signed?fmt(gamesPlayed):'—');
+  set('gamesShown',signed?fmt(gamesPlayed):'—');
+  set('miniBalVal',signed?fmt(availableBalance()):'—');
+  const mb=document.getElementById('miniBal');if(mb)mb.hidden=!signed;
 }
-function applyServerWallet(d){
-  const b=Number(d?.balance), g=Number(d?.games_played);
-  if(!Number.isFinite(b))return;
-  balance=Math.max(0,b+tgPendingNet());
-  if(Number.isFinite(g))gamesPlayed=g+myTgPending().length;
-  saveVirtualBalance();renderModeBalance();
-}
-async function tgFnMessage(err){try{const j=await err.context.json();return j?.error||err.message}catch(_){return err?.message||'error'}}
-async function tgFlushInner(){
-  if(!supabaseClient||!tg?.initData)return true;
-  const uid=tgUid();
-  for(let guard=0;guard<100;guard++){
-    const item=loadTgPending().find(x=>x.user===uid);
-    if(!item)break;
-    const {data,error}=await supabaseClient.functions.invoke('player-wallet',{body:{initData:tg.initData,action:'settle',round:item.round,entries:item.entries}});
-    const drop=()=>saveTgPending(loadTgPending().filter(x=>!(x.user===item.user&&x.round===item.round)));
-    if(error){
-      const st=error?.context?.status||0;
-      if(!st||st>=500||st===401||st===403||st===429){setWalletNote(false,'⚠ Offline or busy — your result will be saved online when the connection returns.');return false}
-      const msg=await tgFnMessage(error);
-      console.error('Round rejected by server:',msg);
-      drop();
-      setWalletNote(false,'⚠ A round could not be saved ('+msg+'). Balance restored to the saved amount.');
-      continue;
-    }
-    drop();
-    applyServerWallet(data);
-  }
-  return true;
-}
-function queueTgSettlement(round,entries,staked,payout){
-  const uid=tgUid();if(!uid)return;
-  const list=loadTgPending();
-  if(!list.some(x=>x.user===uid&&x.round===round))list.push({user:uid,round,entries:entries.map(e=>({picks:e.picks,stake:e.stake})),staked,payout});
-  saveTgPending(list);
-  tgExclusive(async()=>{if(await tgFlushInner()&&!myTgPending().length)setWalletNote(true,'✓ Saved online')});
-}
-function loadTgWallet(silent){
-  return tgExclusive(async()=>{
-    if(!isTelegramRegistered||!supabaseClient||!tg?.initData)return;
-    const ok=await tgFlushInner();
-    const {data,error}=await supabaseClient.functions.invoke('player-wallet',{body:{initData:tg.initData,action:'get'}});
-    if(error||!data||data.balance===undefined){
-      if(!silent||ok){const why=error?await tgFnMessage(error):'no data returned';console.error('player-wallet get failed:',why,error);setWalletNote(false,'⚠ Could not load your saved balance ('+why+') — showing the last known amount.');}
-      return;
-    }
-    applyServerWallet(data);
-    const d=new Date();
-    if(!myTgPending().length)setWalletNote(true,'✓ Saved online • updated '+pad2(d.getHours())+':'+pad2(d.getMinutes()));
-  });
-}
-document.getElementById('refreshWalletBtn')?.addEventListener('click',()=>loadTgWallet(false));
-document.getElementById('refreshBalance')?.addEventListener('click',()=>loadTgWallet(false));
-// Pick up points added/deducted by an admin while the player has the app open.
-setInterval(()=>{if(isTelegramRegistered&&!document.hidden)loadTgWallet(true)},15000);
 function updateRoundView(){
   const g=document.getElementById('kenoGame');if(!g)return;
   // Draw + results phases (after the 60 s entry window): show only the draw, the entries and the result.
