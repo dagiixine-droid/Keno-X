@@ -433,6 +433,11 @@ async function loadPlayerWallet(session,skipFlush){
     const demoValue=Number(data.balance);
     if(Number.isFinite(demoValue)&&demoValue>=0) balance=Math.max(0,demoValue+pendingTotal(session.user.id));if(!pendingTotal(session.user.id))setTimeout(()=>setSync(true,''),0);
     adminPointsBalance=0;
+    try{
+      const gr=await supabaseClient.from('practice_wallets').select('games_played').eq('auth_user_id',session.user.id).maybeSingle();
+      if(!gr.error&&gr.data&&Number.isFinite(Number(gr.data.games_played)))gamesPlayed=Math.max(gamesPlayed,Number(gr.data.games_played)+loadPending().filter(x=>x.user===session.user.id).length);
+    }catch(_){}
+    saveVirtualBalance();
     renderModeBalance();
   } else {
     // No wallet yet (e.g. the account was created before the setup SQL ran): have the server create it, then reload once.
@@ -477,42 +482,51 @@ let flushingSettlements=false;
 function loadPending(){try{const v=JSON.parse(localStorage.getItem(PENDING_KEY)||'[]');return Array.isArray(v)?v:[]}catch(_){return[]}}
 function savePending(list){try{localStorage.setItem(PENDING_KEY,JSON.stringify(list.slice(-200)))}catch(_){}}
 function pendingNetForUser(uid){return loadPending().filter(x=>x.user===uid).reduce((t,x)=>t+(x.payout-x.staked),0)}
-function queueSettlement(round,entries,staked,payout){
+function queueSettlement(round,entries,staked,payout,detail){
   if(!walletUserId)return;
   const list=loadPending();
-  if(!list.some(x=>x.user===walletUserId&&x.round===round))list.push({user:walletUserId,round,entries,staked,payout});
+  if(!list.some(x=>x.user===walletUserId&&x.round===round))list.push({user:walletUserId,round,entries,staked,payout,detail});
   savePending(list);
   flushSettlements();
 }
 async function flushSettlements(){
   if(flushingSettlements||!supabaseClient||!walletUserId)return;
   flushingSettlements=true;
-  let savedAny=false,lastServerBalance=null,dropped=false;
+  let savedAny=false,lastServerBalance=null,lastServerGames=null,dropped=false;
   try{
     for(let guard=0;guard<100;guard++){
       const item=loadPending().find(x=>x.user===walletUserId);
       if(!item)break;
-      const {data,error}=await supabaseClient.rpc('settle_practice_round',{p_round:item.round,p_entries:item.entries,p_staked:item.staked,p_payout:item.payout});
+      // The server recalculates the draw and the payout from the entries, then adds the win / deducts the loss.
+      let data,error;
+      const legacy=()=>supabaseClient.rpc('settle_practice_round',{p_round:item.round,p_entries:item.entries,p_staked:item.staked,p_payout:item.payout});
+      if(Array.isArray(item.detail)&&item.detail.length){
+        ({data,error}=await supabaseClient.rpc('kx_settle_round',{p_round:item.round,p_entries:item.detail}));
+        if(error&&(error.code==='PGRST202'||error.code==='42883'))({data,error}=await legacy());
+      }else{({data,error}=await legacy());}
       if(error){
         const msg=String(error.message||'');
         const network=!error.code&&/fetch|network|load failed|timeout/i.test(msg);
         if(network){setSync(false,'⚠ Offline — your result will be saved online when you reconnect.');break;}                       // offline: keep it and retry later
+        if(msg.includes('round_not_finished')){setSync(false,'⏳ Saving your result… the server will confirm it in a few seconds.');break;}   // clock a little ahead: retry shortly
         if(error.code==='PGRST202'||error.code==='42883'){
-          // settle_practice_round() is not installed: fall back to updating the wallet row directly.
-          console.warn('settle_practice_round() is not installed - falling back to a direct wallet update.');
-          loadPending().filter(x=>x.user===walletUserId).forEach(x=>setPendingDelta(walletUserId,pendingDelta(walletUserId)+(x.payout-x.staked)));
-          savePending(loadPending().filter(x=>x.user!==walletUserId));
-          flushBalanceDelta();break;
+          // Saving is not installed on the server yet: keep the result and retry later instead of losing it.
+          console.warn('kx_settle_round() is not installed. Run keno_x_settlement.sql in Supabase.');
+          setSync(false,'⚠ Saving is not set up yet. The administrator must run keno_x_settlement.sql in Supabase.');
+          break;
         }
         console.error('Round could not be saved and was discarded:',error);
         setSync(false,'⚠ A round could not be saved online ('+msg+'). Your balance was reset to the saved amount.');
         savePending(loadPending().filter(x=>!(x.user===item.user&&x.round===item.round)));dropped=true;continue;
       }
       savePending(loadPending().filter(x=>!(x.user===item.user&&x.round===item.round)));
-      savedAny=true;lastServerBalance=Number(data);
+      savedAny=true;
+      if(data&&typeof data==='object'){lastServerBalance=Number(data.balance);if(Number.isFinite(Number(data.games_played)))lastServerGames=Number(data.games_played);}
+      else lastServerBalance=Number(data);
     }
   }finally{flushingSettlements=false;}
   if(savedAny&&!pendingTotal(walletUserId))setSync(true,'✓ Balance saved online — the admin sees this amount.');
+  if(lastServerGames!==null){gamesPlayed=Math.max(gamesPlayed,lastServerGames+loadPending().filter(x=>x.user===walletUserId).length);saveVirtualBalance();}
   if(lastServerBalance!==null&&Number.isFinite(lastServerBalance)){
     // The server is the source of truth; add any results that are still waiting to be sent.
     balance=Math.max(0,lastServerBalance+pendingTotal(walletUserId));saveVirtualBalance();renderModeBalance();
@@ -792,7 +806,7 @@ function finishDraw(){
     if(walletUserId){
       // Signed-in player: update the balance now and save the round on the server (retried if offline).
       balance=Math.max(0,balance+(totalPayout-totalStake));gamesPlayed+=1;saveVirtualBalance();renderModeBalance();
-      queueSettlement(roundSequence,entries.length,totalStake,totalPayout);
+      queueSettlement(roundSequence,entries.length,totalStake,totalPayout,entries.map(e=>({picks:[...e.picks],stake:e.stake})));
     }else{
       addToBalance('demo',totalPayout-totalStake);
     }
