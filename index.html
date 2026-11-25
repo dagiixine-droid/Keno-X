@@ -177,12 +177,11 @@ button:hover:not(:disabled){transform:translateY(-2px)}button:active:not(:disabl
         <button type="button" class="account-tab" id="registerTabBtn" role="tab" aria-selected="false" aria-controls="registerPanel">Registration</button>
       </div>
       <div id="loginPanel" role="tabpanel" aria-labelledby="loginTabBtn">
-     <form id="loginForm" class="account-form">
-          <label>Username<input id="loginUsername" name="username" type="username" autocomplete="username" inputmode="username" placeholder="e.g. Abebe_12" required></label>
-          <label>Password<input id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="Your password" required></label>
-          <button class="goldbtn" type="submit" id="loginBtn">Login</button>
-          <button class="pill" type="button" id="resendBtn" hidden>Resend verification email</button>
-        </form>
+          <form id="loginForm" class="account-form" autocomplete="on" hidden>
+            <label>Username<input id="loginUsername" name="username" type="text" autocomplete="username" required></label>
+            <label>Password<input id="loginPassword" name="current-password" type="password" autocomplete="current-password" required></label>
+            <button class="goldbtn" id="loginSubmit" type="submit">Login</button>
+          </form>
       </div>
       <div id="registerPanel" role="tabpanel" aria-labelledby="registerTabBtn" hidden>
         <form id="registerForm" class="account-form">
