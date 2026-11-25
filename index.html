@@ -192,7 +192,7 @@ button:hover:not(:disabled){transform:translateY(-2px)}button:active:not(:disabl
           <label>Confirm password<input id="regConfirm" name="confirm" type="password" minlength="8" autocomplete="new-password" placeholder="Enter password again" required></label>
           <button class="goldbtn" type="submit" id="registerBtn">Create account</button>
         </form>
-        <p class="account-help">You will log in with your email and password. We send a verification link to your email — open it, then come back and log in. Your email is never shown to other players. Never reuse an important password.</p>
+        <p class="account-help">You will log in with your email and password. New players start with <b>100 practice points</b>. We send a verification link to your email — open it, then come back and log in. Your email is never shown to other players. Never reuse an important password.</p>
       </div>
     </div>
     <div id="accountSignedIn" hidden>
@@ -1333,8 +1333,8 @@ document.getElementById('registerForm').addEventListener('submit',async(event)=>
     if(data.user&&Array.isArray(data.user.identities)&&data.user.identities.length===0){
       accountMessage('This email is already registered. Please log in instead.',true);return;
     }
-    if(data.session){accountMessage('Account created successfully. Your profile is ready.');showAccountSession(data.session);}
-    else accountMessage('Almost done! We sent a verification link to '+email+'. Open it, then come back and log in.');
+    if(data.session){accountMessage('Account created successfully. You start with 100 practice points.');showAccountSession(data.session);}
+    else accountMessage('Almost done! We sent a verification link to '+email+'. Open it, then come back and log in — your 100 practice points will be waiting.');
     event.target.reset();
   }catch(error){
     console.error('Registration failed:',error);
