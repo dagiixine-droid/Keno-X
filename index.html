@@ -203,7 +203,7 @@ button:hover:not(:disabled){transform:translateY(-2px)}button:active:not(:disabl
       <div id="loginPanel" role="tabpanel" aria-labelledby="loginTabBtn">
           <form id="loginForm" class="account-form" autocomplete="on">
             <label>Username<input id="loginEmail" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="Your username" required></label>
-            <label>Password<input id="loginPassword" name="current-password" type="password" autocomplete="current-password" required></label>
+            <label>Password<input id="loginPassword" name="current-password" type="password" autocomplete="current-password" placeholder="Your password" required></label>
             <button class="goldbtn" id="loginBtn" type="submit">Login</button>
             <button class="pill" id="resendBtn" type="button" hidden>Resend verification email</button>
           </form>
@@ -215,7 +215,6 @@ button:hover:not(:disabled){transform:translateY(-2px)}button:active:not(:disabl
           <label>Confirm password<input id="regConfirm" name="confirm" type="password" minlength="8" autocomplete="new-password" placeholder="Enter password again" required></label>
           <button class="goldbtn" type="submit" id="registerBtn">Create account</button>
         </form>
-        <p class="account-help">You will log in with your username and password. Username: 3–20 letters, numbers or underscores. New players start with <b>100 practice points</b>. Keep your password safe — there is no email recovery.</p>
       </div>
     </div>
     <div id="accountSignedIn" hidden>
@@ -1347,15 +1346,30 @@ document.getElementById('loginForm').addEventListener('submit',async(event)=>{
   const password=document.getElementById('loginPassword').value;
   const resend=document.getElementById('resendBtn');resend.hidden=true;
   // Username is the normal way in; an email address is still accepted so older accounts keep working.
-  let email;
-  if(typed.includes('@')){email=typed.toLowerCase();if(!EMAIL_RE.test(email)){accountMessage('Enter your username (or a valid email address).',true);return;}}
-  else{if(!USERNAME_RE.test(typed)){accountMessage('Enter your username (3–20 letters, numbers or underscores).',true);return;}email=usernameToEmail(typed);}
+  let email, candidates;
+  if(typed.includes('@')){email=typed.toLowerCase();if(!EMAIL_RE.test(email)){accountMessage('Enter your username (or a valid email address).',true);return;}candidates=[email];}
+  else{
+    if(!USERNAME_RE.test(typed)){accountMessage('Enter your username (3–20 letters, numbers or underscores).',true);return;}
+    candidates=[usernameToEmail(typed)];
+    // Older accounts were created with a real email: ask the server which email belongs to this username.
+    try{const r=await supabaseClient.rpc('kx_login_email',{p_username:typed});
+      if(!r.error&&typeof r.data==='string'&&r.data&&!candidates.includes(r.data.toLowerCase()))candidates.unshift(r.data.toLowerCase());
+      else if(r.error)console.warn('kx_login_email() unavailable (run keno_x_username_login.sql):',r.error.message);
+    }catch(err){console.warn('kx_login_email lookup failed:',err);}
+    email=candidates[0];
+  }
   if(!password){accountMessage('Enter your password.',true);return;}
   lastLoginEmail=email;
   const button=document.getElementById('loginBtn');button.disabled=true;button.textContent='Checking…';
   accountMessage('Signing in…');
   try{
-    const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
+    let data,error;
+    for(const em of candidates){
+      ({data,error}=await supabaseClient.auth.signInWithPassword({email:em,password}));
+      if(!error)break;
+      lastLoginEmail=em;
+      if(!String(error.message||'').toLowerCase().includes('invalid login'))break; // a different problem (e.g. not confirmed): stop and report it
+    }
     if(error)throw error;
     accountMessage('Login successful.');
     await showAccountSession(data.session);
