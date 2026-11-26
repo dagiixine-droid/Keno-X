@@ -202,7 +202,7 @@ button:hover:not(:disabled){transform:translateY(-2px)}button:active:not(:disabl
       </div>
       <div id="loginPanel" role="tabpanel" aria-labelledby="loginTabBtn">
           <form id="loginForm" class="account-form" autocomplete="on">
-            <label>Email address<input id="loginEmail" name="email" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com" required></label>
+            <label>Username<input id="loginEmail" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="Your username" required></label>
             <label>Password<input id="loginPassword" name="current-password" type="password" autocomplete="current-password" required></label>
             <button class="goldbtn" id="loginBtn" type="submit">Login</button>
             <button class="pill" id="resendBtn" type="button" hidden>Resend verification email</button>
@@ -210,13 +210,12 @@ button:hover:not(:disabled){transform:translateY(-2px)}button:active:not(:disabl
       </div>
       <div id="registerPanel" role="tabpanel" aria-labelledby="registerTabBtn" hidden>
         <form id="registerForm" class="account-form">
-            <label>Username<input id="regUsername" name="username" maxlength="20" pattern="[A-Za-z0-9_]{3,20}" autocomplete="nickname" placeholder="e.g. Abebe_12"></label>
-            <label>Email address<input id="regEmail" name="email" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com" required></label>
+            <label>Username<input id="regUsername" name="username" maxlength="20" pattern="[A-Za-z0-9_]{3,20}" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="e.g. Abebe_12" required></label>
           <label>Password<input id="regPassword" name="password" type="password" minlength="8" autocomplete="new-password" placeholder="At least 8 characters" required></label>
           <label>Confirm password<input id="regConfirm" name="confirm" type="password" minlength="8" autocomplete="new-password" placeholder="Enter password again" required></label>
           <button class="goldbtn" type="submit" id="registerBtn">Create account</button>
         </form>
-        <p class="account-help">You will log in with your email and password. New players start with <b>100 practice points</b>. We send a verification link to your email — open it, then come back and log in. Your email is never shown to other players. Never reuse an important password.</p>
+        <p class="account-help">You will log in with your username and password. Username: 3–20 letters, numbers or underscores. New players start with <b>100 practice points</b>. Keep your password safe — there is no email recovery.</p>
       </div>
     </div>
     <div id="accountSignedIn" hidden>
@@ -1322,13 +1321,16 @@ function closeAdminDashboard(){
 }
 
 const EMAIL_RE=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const USERNAME_RE=/^[A-Za-z0-9_]{3,20}$/;
+const USERNAME_EMAIL_DOMAIN='kenox.app'; // usernames are stored as <username>@kenox.app in Supabase Auth
+function usernameToEmail(u){return String(u).trim().toLowerCase()+'@'+USERNAME_EMAIL_DOMAIN}
 let lastLoginEmail='';
 function friendlyAuthError(error){
   const m=String(error?.message||'').toLowerCase();
-  if(m.includes('invalid login'))return 'Incorrect email or password.';
-  if(m.includes('not confirmed'))return 'Please verify your email first. Open the link we sent you, then log in.';
+  if(m.includes('invalid login'))return 'Incorrect username or password.';
+  if(m.includes('not confirmed'))return 'This account still needs email confirmation. The administrator must turn off "Confirm email" in Supabase (Authentication → Providers → Email).';
   if(m.includes('rate limit')||m.includes('too many'))return 'Too many attempts. Please wait a minute and try again.';
-  if(m.includes('already registered'))return 'This email is already registered. Please log in instead.';
+  if(m.includes('already registered'))return 'That username is already taken. Choose another or log in.';
   if(m.includes('database error'))return 'Account setup failed on the server. The administrator needs to run keno_x_accounts.sql in Supabase, then try again.';
   if(m.includes('password')&&m.includes('characters'))return 'Choose a stronger password (at least 8 characters).';
   return String(error?.message||'Something went wrong. Please try again.');
@@ -1341,10 +1343,13 @@ function randomPlayerName(){
 document.getElementById('loginForm').addEventListener('submit',async(event)=>{
   event.preventDefault();
   if(!supabaseClient){accountMessage('Account service is unavailable. Refresh and try again.',true);return;}
-  const email=document.getElementById('loginEmail').value.trim().toLowerCase();
+  const typed=document.getElementById('loginEmail').value.trim();
   const password=document.getElementById('loginPassword').value;
   const resend=document.getElementById('resendBtn');resend.hidden=true;
-  if(!EMAIL_RE.test(email)){accountMessage('Enter a valid email address.',true);return;}
+  // Username is the normal way in; an email address is still accepted so older accounts keep working.
+  let email;
+  if(typed.includes('@')){email=typed.toLowerCase();if(!EMAIL_RE.test(email)){accountMessage('Enter your username (or a valid email address).',true);return;}}
+  else{if(!USERNAME_RE.test(typed)){accountMessage('Enter your username (3–20 letters, numbers or underscores).',true);return;}email=usernameToEmail(typed);}
   if(!password){accountMessage('Enter your password.',true);return;}
   lastLoginEmail=email;
   const button=document.getElementById('loginBtn');button.disabled=true;button.textContent='Checking…';
@@ -1374,34 +1379,34 @@ document.getElementById('resendBtn').addEventListener('click',async()=>{
 document.getElementById('registerForm').addEventListener('submit',async(event)=>{
   event.preventDefault();
   if(!supabaseClient){accountMessage('Account service is unavailable. Refresh and try again.',true);return;}
-  const email=document.getElementById('regEmail').value.trim().toLowerCase();
-  const typedName=document.getElementById('regUsername').value.trim();
+  const username=document.getElementById('regUsername').value.trim();
   const password=document.getElementById('regPassword').value;
   const confirm=document.getElementById('regConfirm').value;
-  if(!EMAIL_RE.test(email)){accountMessage('Enter a valid email address.',true);return;}
-  if(typedName&&!/^[A-Za-z0-9_]{3,20}$/.test(typedName)){accountMessage('Display name must be 3–20 characters: letters, numbers, and underscores only (or leave it blank).',true);return;}
+  if(!USERNAME_RE.test(username)){accountMessage('Username must be 3–20 characters: letters, numbers and underscores only.',true);return;}
   if(password.length<8){accountMessage('Choose a password with at least 8 characters.',true);return;}
   if(password!==confirm){accountMessage('The passwords do not match.',true);return;}
+  const email=usernameToEmail(username);
   const button=document.getElementById('registerBtn');button.disabled=true;button.textContent='Creating account…';
   accountMessage('Creating your account…');
   try{
-    let username=typedName||randomPlayerName(), result;
-    for(let attempt=0;attempt<3;attempt++){
-      result=await supabaseClient.auth.signUp({email,password,options:{data:{username}}});
-      const msg=String(result.error?.message||'').toLowerCase();
-      const nameTaken=result.error&&(msg.includes('duplicate')||msg.includes('unique')||msg.includes('database error'));
-      if(nameTaken&&!typedName){username=randomPlayerName();continue;}   // auto-generated name collided: try another
-      if(nameTaken&&typedName){accountMessage('That display name is already taken. Choose another or leave it blank.',true);return;}
-      break;
+    const {data,error}=await supabaseClient.auth.signUp({email,password,options:{data:{username}}});
+    if(error){
+      const msg=String(error.message||'').toLowerCase();
+      if(msg.includes('already registered')||msg.includes('duplicate')||msg.includes('unique')){accountMessage('That username is already taken. Choose another.',true);return;}
+      throw error;
     }
-    const {data,error}=result;
-    if(error)throw error;
-    // With email confirmation on, an existing email returns a user with no identities and no error.
+    // An existing user comes back with no identities (and no error) when email confirmation is on.
     if(data.user&&Array.isArray(data.user.identities)&&data.user.identities.length===0){
-      accountMessage('This email is already registered. Please log in instead.',true);return;
+      accountMessage('That username is already taken. Choose another.',true);return;
     }
-    if(data.session){accountMessage('Account created successfully. You start with 100 practice points.');showAccountSession(data.session);}
-    else accountMessage('Almost done! We sent a verification link to '+email+'. Open it, then come back and log in — your 100 practice points will be waiting.');
+    let session=data.session;
+    if(!session){ // some setups do not return a session on sign-up: sign in right away
+      const r=await supabaseClient.auth.signInWithPassword({email,password});
+      if(r.error)throw r.error;
+      session=r.data.session;
+    }
+    accountMessage('Account created successfully. You start with 100 practice points.');
+    await showAccountSession(session);
     event.target.reset();
   }catch(error){
     console.error('Registration failed:',error);
