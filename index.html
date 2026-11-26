@@ -137,6 +137,30 @@ button:hover:not(:disabled){transform:translateY(-2px)}button:active:not(:disabl
 #kenoGame.draw-mode #stakeCard #entriesList{margin-top:0;max-height:none}
 
 .balance-amount small{margin-left:6px}.balance-games{margin:2px 0 12px;font-size:13px;color:#9aaba5}.balance-games b{color:#83f3ff;font-variant-numeric:tabular-nums}
+
+/* ===== Draw stage (Keno X style) ===== */
+.draw-stage{position:relative;overflow:hidden;border-radius:16px;padding:10px 12px 12px;margin-top:6px;background:radial-gradient(ellipse at 50% 0%,#1e1538 0,#0f0b1c 48%,#08060f 100%);border:1px solid #331c5b;box-shadow:inset 0 1px #fff1,0 10px 26px #0006,0 0 22px #00e5ff14}
+.draw-stage:before{content:'';position:absolute;left:0;top:0;width:100%;height:1px;background:linear-gradient(90deg,transparent,var(--gold),var(--blue),transparent)}
+.draw-stage:after{content:'';position:absolute;inset:auto -20% -70% -20%;height:100%;background:radial-gradient(ellipse,#00e5ff18,transparent 65%);pointer-events:none}
+.draw-swirl{position:absolute;left:50%;top:0;width:150%;height:100%;transform:translateX(-50%);pointer-events:none;opacity:.5}
+.draw-swirl g{transform-origin:200px 96px;animation:swirlSpin 26s linear infinite}
+@keyframes swirlSpin{to{transform:rotate(360deg)}}
+.draw-count{position:absolute;top:10px;right:12px;z-index:2;font-size:12px;font-weight:850;letter-spacing:3px;color:#6feaf7;font-variant-numeric:tabular-nums;text-shadow:0 0 10px #00e5ff40}
+.big-ball{position:relative;z-index:2;width:80px;height:80px;margin:2px auto 14px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 25%,#a4f6ff,#00e5ff 62%,#8d0081);border:3px solid #b8f8ff;box-shadow:0 0 18px #00e5ff,0 0 38px #00e5ff55,inset 0 1px #fff9,inset 0 -6px 12px #3a004a88}
+.big-ball:before{content:"";position:absolute;top:5px;left:50%;width:50%;height:26%;transform:translateX(-50%);border-radius:50%;background:linear-gradient(#ffffffaa,#ffffff08)}
+.big-ball span{position:relative;z-index:1;font-weight:1000;font-size:34px;line-height:1;color:#080020;margin-top:4px;text-shadow:0 1px 0 #ffffff80}
+.big-ball.idle{background:radial-gradient(circle at 35% 25%,#2a1c4d,#120b25 70%);border-color:#4a2a82;box-shadow:0 0 14px #a77bff30,inset 0 1px #fff2}
+.big-ball.idle span{color:#7c66b0;font-size:28px;text-shadow:none}
+.big-ball.pop{animation:bigPop .45s cubic-bezier(.2,.9,.25,1.2)}
+.big-ball.match{background:radial-gradient(circle at 35% 25%,#b8ffd7,#00e985 62%,#007a42);border-color:#c8ffe0;box-shadow:0 0 20px #00e985,0 0 42px #00e98566,inset 0 1px #fff9}
+@keyframes bigPop{0%{transform:scale(.4) rotate(-25deg);opacity:.2}75%{transform:scale(1.12) rotate(4deg)}100%{transform:scale(1) rotate(0);opacity:1}}
+.draw-stage .drawballs{position:relative;z-index:2;display:flex;flex-wrap:wrap;gap:5px;margin:0;justify-content:flex-start}
+.draw-stage .drawballs>.ball{width:32px;height:32px;border-radius:50%;background:radial-gradient(circle at 35% 25%,#a4f6ff,#00e5ff 65%,#8d0081);border:1px solid #8af3ff;color:#080020;font-weight:950;font-size:12px;box-shadow:0 2px 7px #0007,0 0 10px #00e5ff40;animation:ballPop .35s cubic-bezier(.2,.8,.2,1) both}
+.draw-stage .drawballs>.ball.hit{border-color:#c8ffe0;background:radial-gradient(circle at 35% 25%,#b8ffd7,#00e985 65%,#007a42);box-shadow:0 0 14px #00e985,0 0 22px #00e98555}
+.pk-list{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+.pk{min-width:26px;height:26px;padding:0 5px;display:inline-grid;place-items:center;border-radius:50%;border:1px solid #671a61;background:linear-gradient(#160f29,#0a0714);color:#d2f8fd;font-size:11px;font-weight:800}
+.pk.hit{border-color:#c8ffe0;background:radial-gradient(circle at 35% 25%,#b8ffd7,#00e985 65%,#007a42);color:#05200f;box-shadow:0 0 10px #00e985aa;animation:ballPop .35s ease both}
+.hit-count{color:#00e985;font-weight:850}
 </style>
 </head>
 <body>
@@ -177,10 +201,11 @@ button:hover:not(:disabled){transform:translateY(-2px)}button:active:not(:disabl
         <button type="button" class="account-tab" id="registerTabBtn" role="tab" aria-selected="false" aria-controls="registerPanel">Registration</button>
       </div>
       <div id="loginPanel" role="tabpanel" aria-labelledby="loginTabBtn">
-          <form id="loginForm" class="account-form" autocomplete="on" hidden>
-            <label>Username<input id="loginUsername" name="username" type="text" autocomplete="username" required></label>
+          <form id="loginForm" class="account-form" autocomplete="on">
+            <label>Email address<input id="loginEmail" name="email" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com" required></label>
             <label>Password<input id="loginPassword" name="current-password" type="password" autocomplete="current-password" required></label>
-            <button class="goldbtn" id="loginSubmit" type="submit">Login</button>
+            <button class="goldbtn" id="loginBtn" type="submit">Login</button>
+            <button class="pill" id="resendBtn" type="button" hidden>Resend verification email</button>
           </form>
       </div>
       <div id="registerPanel" role="tabpanel" aria-labelledby="registerTabBtn" hidden>
@@ -229,7 +254,12 @@ button:hover:not(:disabled){transform:translateY(-2px)}button:active:not(:disabl
   <section class="card" style="margin-bottom:14px">
     <h3>🌐 Scheduled Keno draw <span style="float:right;color:#a8b4aa;font-size:12px">20 numbers • 1/sec</span></h3>
     <div id="scheduledStatus" class="sub" aria-live="polite">The 60-second entry window is open. Join the next draw with your picks.</div>
-    <div class="drawballs" id="drawBalls" aria-live="polite" aria-label="Scheduled demo numbers revealed one at a time"></div>
+    <div class="draw-stage" id="drawStage" hidden>
+      <svg class="draw-swirl" viewBox="0 0 400 270" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><g fill="none" stroke="#5aeeff" stroke-linecap="round"><path d="M 200 -10 A 108 108 0 0 1 308 96" stroke-width="2.5"/><path d="M 308 96 A 108 108 0 0 1 250 190" stroke-width="1.5" opacity=".6"/><path d="M 92 96 A 108 108 0 0 1 200 -12" stroke-width="2" opacity=".8"/><path d="M 120 190 A 108 108 0 0 0 220 204" stroke-width="2.5"/><path d="M 140 70 A 64 64 0 0 1 200 32" stroke-width="2" opacity=".7"/><path d="M 264 130 A 64 64 0 0 1 200 160" stroke-width="1.5" opacity=".6"/></g></svg>
+      <div class="draw-count" id="drawCounter">00 / 20</div>
+      <div class="big-ball idle" id="bigBall" aria-live="polite"><span id="bigBallNum">?</span></div>
+      <div class="drawballs" id="drawBalls" aria-live="polite" aria-label="Scheduled demo numbers revealed one at a time"></div>
+    </div>
   </section>
   <main class="layout" id="kenoGame">
     <section class="card" id="pickCard">
@@ -603,7 +633,10 @@ function renderEntries(){
     const row=document.createElement('div');row.className='entry-row';
     const info=document.createElement('div');info.className='entry-info';
     const t=document.createElement('strong');t.textContent=`#${i+1} • ${fmt(e.stake)} credits`;
-    const d=document.createElement('small');d.textContent=e.picks.join(', ');
+    const drawn=new Set(scheduledDrawNumbers.slice(0,revealCount));
+    const hitN=e.picks.filter(n=>drawn.has(n)).length;
+    if(revealCount>0)t.innerHTML+=` • <span class="hit-count">${hitN} matched</span>`;
+    const d=document.createElement('div');d.innerHTML=pickChips(e.picks,drawn);
     info.append(t,d);row.appendChild(info);
     if(phase==='countdown'){
       const x=document.createElement('button');x.type='button';x.className='entry-x';x.textContent='✕';x.setAttribute('aria-label','Cancel entry '+(i+1));
@@ -753,12 +786,33 @@ function getRoundDraw(roundId){
   while(result.length<20){const idx=Math.floor(rand()*pool.length);result.push(pool.splice(idx,1)[0]);}
   return result;
 }
+function myPickSet(){const s=new Set();queuedEntries.forEach(e=>e.picks.forEach(n=>s.add(n)));return s}
+function pad2(n){return String(n).padStart(2,'0')}
+function pickChips(picks,drawn){return `<span class="pk-list">${picks.map(n=>`<span class="pk${drawn&&drawn.has(n)?' hit':''}">${n}</span>`).join('')}</span>`}
+function resetDrawStage(){
+  const bb=document.getElementById('bigBall'),bn=document.getElementById('bigBallNum'),dc=document.getElementById('drawCounter'),db=document.getElementById('drawBalls');
+  if(db)db.innerHTML='';
+  const st=document.getElementById('drawStage');if(st)st.hidden=true;
+  if(bb){bb.classList.add('idle');bb.classList.remove('match','pop')}
+  if(bn)bn.textContent='?';
+  if(dc)dc.textContent='00 / 20';
+}
 function revealOneNumber(){
   if(revealCount>=20)return;
   const n=scheduledDrawNumbers[revealCount];
-  const ball=document.createElement('span');ball.className='ball';ball.textContent=n;ball.title='Demo draw number '+n;
+  const mine=myPickSet().has(n);
+  const stg=document.getElementById('drawStage');if(stg)stg.hidden=false;
+  const ball=document.createElement('span');ball.className='ball'+(mine?' hit':'');ball.textContent=n;ball.title='Draw number '+n;
   document.getElementById('drawBalls').appendChild(ball);
   revealCount++;
+  const bb=document.getElementById('bigBall');
+  if(bb){
+    document.getElementById('bigBallNum').textContent=n;
+    bb.classList.remove('idle','pop','match');void bb.offsetWidth;
+    bb.classList.add('pop');if(mine)bb.classList.add('match');
+  }
+  const dc=document.getElementById('drawCounter');if(dc)dc.textContent=pad2(revealCount)+' / 20';
+  renderEntries();
   document.getElementById('scheduledStatus').textContent=`Drawing in progress — ${revealCount} of 20 numbers revealed.`;
   if(revealCount===20)finishDraw();
 }
@@ -798,7 +852,7 @@ function finishDraw(){
       netByMode[entry.mode]=(netByMode[entry.mode]||0)+(payout-entry.stake);
       totalStake+=entry.stake;totalPayout+=payout;if(payout>entry.stake)wins++;bestHits=Math.max(bestHits,hits.length);
       const diff=payout-entry.stake;
-      rowsHtml.push(`<div class="result-row"><strong>#${i+1}</strong> • ${entry.picks.join(', ')}<br>${hits.length} matched${hits.length?` (${hits.join(', ')})`:''} • stake ${fmt(entry.stake)} • ${diff>0?`<span class="win-line">+${fmt(diff)}</span>`:diff===0&&payout>0?'<span>returned</span>':`<span class="lose-line">${fmt(diff)}</span>`}</div>`);
+      rowsHtml.push(`<div class="result-row"><strong>#${i+1}</strong> ${pickChips(entry.picks,new Set(drawNumbers))}${hits.length} matched${hits.length?` (${hits.join(', ')})`:''} • stake ${fmt(entry.stake)} • ${diff>0?`<span class="win-line">+${fmt(diff)}</span>`:diff===0&&payout>0?'<span>returned</span>':`<span class="lose-line">${fmt(diff)}</span>`}</div>`);
     });
     const net=totalPayout-totalStake;
     // Balance changes only now, once for the whole draw: profit is added and lost stakes are removed.
@@ -954,7 +1008,7 @@ setInterval(()=>{const lp=document.getElementById('leaderPanel');if(lp&&!lp.hidd
 function resetRoundState(rid){
   currentRound=rid;roundSequence=rid;
   scheduledDrawNumbers=getRoundDraw(rid);revealCount=0;
-  if(holdUntil>Date.now())ballsClearPending=true;else document.getElementById('drawBalls').innerHTML='';
+  if(holdUntil>Date.now())ballsClearPending=true;else resetDrawStage();
 }
 function tickDraw(){
   if(!clockReady){paintCountdown(0,0);return}
